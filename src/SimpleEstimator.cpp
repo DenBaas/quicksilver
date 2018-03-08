@@ -11,14 +11,14 @@ SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     // works only with SimpleGraph
     graph = g;
-    num_of_edges = new int[graph->getNoLabels()] {};
-    missing_out_vertices = new int[graph->getNoLabels()] {};
+    total_tuples_out = new int[graph->getNoLabels()] {};
+    distinct_tuples_out = new int[graph->getNoLabels()] {};
 
-    num_of_edges2 = new int[graph->getNoLabels()] {};
-    missing_in_vertices = new int[graph->getNoLabels()] {};
+    total_tuples_in = new int[graph->getNoLabels()] {};
+    distinct_tuples_in = new int[graph->getNoLabels()] {};
 
-    edges_previous = new int[graph->getNoLabels()] {};
-    edges_previous2 = new int[graph->getNoLabels()] {};
+    previous_tuples_out = new int[graph->getNoLabels()] {};
+    previous_tuples_in = new int[graph->getNoLabels()] {};
 }
 
 void SimpleEstimator::prepare() {
@@ -33,23 +33,23 @@ void SimpleEstimator::prepare() {
           sum++;
 
         for (auto labelTarget : graph->adj[i]) {
-            num_of_edges[labelTarget.first]++;
+            total_tuples_out[labelTarget.first]++;
         }
 
         for (auto labelTarget : graph->reverse_adj[i]) {
-            num_of_edges2[labelTarget.first]++;
+            total_tuples_in[labelTarget.first]++;
         }
 
         for (int j = 0; j < noLabels; j++) {
-            if (num_of_edges[j] == edges_previous[j])
-                missing_out_vertices[j]++;
-            else
-                edges_previous[j] = num_of_edges[j];
+            if (total_tuples_out[j] != previous_tuples_out[j]) {
+                distinct_tuples_out[j]++;
+                previous_tuples_out[j] = total_tuples_out[j];
+            }
 
-            if (num_of_edges2[j] == edges_previous2[j])
-                missing_in_vertices[j]++;
-            else
-                edges_previous2[j] = num_of_edges2[j];
+            if (total_tuples_in[j] != previous_tuples_in[j]) {
+                distinct_tuples_in[j]++;
+                previous_tuples_in[j] = total_tuples_in[j];
+            }
         }
     }
 
@@ -58,9 +58,10 @@ void SimpleEstimator::prepare() {
 
     std::cout << "Sum: " << sum << '\n' << std::endl;
     for(int j = 0; j < noLabels; j++) {
-        cout << j << "th noOut: " << noVertices - missing_out_vertices[j] << '\n';
-        cout << j << "th label: " << num_of_edges[j] << '\n';
-        cout << j << "th noIn: " << noVertices - missing_in_vertices[j] << '\n';
+        cout << j << "th noOut: " << distinct_tuples_out[j] << '\n';
+        cout << j << "th label: " << total_tuples_out[j] << '\n';
+        cout << j << "th label: " << total_tuples_in[j] << '\n';
+        cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
     }
 }
 
@@ -83,11 +84,11 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         if(std::regex_search(q->data, matches, directLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             inverse = false;
-            return cardStat{(uint32_t)(graph->getNoVertices() - missing_out_vertices[label]), (uint32_t)num_of_edges[label], (uint32_t)(graph->getNoVertices() - missing_in_vertices[label])};
+            return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_in[label])};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             inverse = true;
-            return cardStat{(uint32_t)(graph -> getNoVertices() - missing_in_vertices[label]), (uint32_t)num_of_edges[label], (uint32_t)(graph->getNoVertices() - missing_out_vertices[label])};
+            return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_out[label])};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
             return cardStat{0, 0, 0};
@@ -117,10 +118,10 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
 }
 
 SimpleEstimator::~SimpleEstimator() {
-    delete[] num_of_edges;
-    delete[] num_of_edges2;
-    delete[] missing_in_vertices;
-    delete[] missing_out_vertices;
-    delete[] edges_previous;
-    delete[] edges_previous2;
+    delete[] total_tuples_out;
+    delete[] total_tuples_in;
+    delete[] distinct_tuples_in;
+    delete[] distinct_tuples_out;
+    delete[] previous_tuples_out;
+    delete[] previous_tuples_in;
 }

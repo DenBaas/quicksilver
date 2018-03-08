@@ -11,14 +11,14 @@
 class SimpleEstimator : public Estimator {
 
     std::shared_ptr<SimpleGraph> graph;
-    int* num_of_edges;
-    int* missing_out_vertices;
+    int* total_tuples_out;
+    int* distinct_tuples_out;
 
-    int* num_of_edges2;
-    int* missing_in_vertices;
+    int* total_tuples_in;
+    int* distinct_tuples_in;
 
-    int* edges_previous;
-    int* edges_previous2;
+    int* previous_tuples_out;
+    int* previous_tuples_in;
 
 public:
     explicit SimpleEstimator(std::shared_ptr<SimpleGraph> &g);
