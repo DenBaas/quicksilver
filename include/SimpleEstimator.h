@@ -21,11 +21,6 @@ class SimpleEstimator : public Estimator {
     int* previous_tuples_out;
     int* previous_tuples_in;
 
-    EquiWidthHistogram* outEdgesHistogram;
-    EquiWidthHistogram* inEdgesHistogram;
-    EquiWidthHistogram* outVerticesHistogram;
-    EquiWidthHistogram* inVerticesHistogram;
-
 public:
     explicit SimpleEstimator(std::shared_ptr<SimpleGraph> &g);
     ~SimpleEstimator();

@@ -19,10 +19,6 @@ SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     previous_tuples_out = new int[graph->getNoLabels()] {};
     previous_tuples_in = new int[graph->getNoLabels()] {};
-    outEdgesHistogram = new EquiWidthHistogram();
-    outVerticesHistogram = new EquiWidthHistogram();
-    inVerticesHistogram = new EquiWidthHistogram();
-    inEdgesHistogram = new EquiWidthHistogram();
 }
 
 void SimpleEstimator::prepare() {
@@ -30,10 +26,6 @@ void SimpleEstimator::prepare() {
     // do your prep here
     int noLabels = graph->getNoLabels();
     int noVertices = graph->getNoVertices();
-    outEdgesHistogram->init(noLabels);
-    inEdgesHistogram->init(noLabels);
-    outVerticesHistogram->init(noLabels);
-    inVerticesHistogram->init(noLabels);
 
     int sum = 0;
     for(int i = 0; i < noVertices; i++) {
@@ -41,30 +33,12 @@ void SimpleEstimator::prepare() {
             sum++;
         }
 
-        int inLabelsFound[noLabels];
-        int outLabelsFound[noLabels];
-        for(int i = 0; i < noLabels; i++){
-            inLabelsFound[i] = outLabelsFound[i] = 0;
-        }
         for (auto labelTarget : graph->adj[i]) {
             total_tuples_out[labelTarget.first]++;
-            outEdgesHistogram->data[labelTarget.first]++;
-            outLabelsFound[labelTarget.first]=1;
         }
 
         for (auto labelTarget : graph->reverse_adj[i]) {
             total_tuples_in[labelTarget.first]++;
-            inEdgesHistogram->data[labelTarget.first]++;
-            inLabelsFound[labelTarget.first]=1;
-        }
-
-        for(int i = 0; i < noLabels; i++){
-            if(inLabelsFound[i] == 1) {
-                inVerticesHistogram->data[i]++;
-            }
-            if(outLabelsFound[i] == 1){
-                outVerticesHistogram->data[i]++;
-            }
         }
 
         for (int j = 0; j < noLabels; j++) {
@@ -79,14 +53,6 @@ void SimpleEstimator::prepare() {
             }
         }
     }
-    cout<<"in vertices histogram\n";
-    for(int i = 0; i < noLabels; i++)
-        cout<<inVerticesHistogram->data[i]<<"\n";
-
-    cout<<"out vertices histogram\n";
-    for(int i = 0; i < noLabels; i++)
-        cout<<outVerticesHistogram->data[i]<<"\n";
-
 
     std::cout << "Sum: " << sum << '\n' << std::endl;
     for(int j = 0; j < noLabels; j++) {
@@ -119,7 +85,6 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
             //return cardStat{out, (uint32_t) num_of_edges[label], out};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            uint32_t out = inVerticesHistogram->data[label];
             return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_out[label])};
             //return  cardStat{out, (uint32_t) num_of_edges[label], out};
         } else {
@@ -160,7 +125,4 @@ SimpleEstimator::~SimpleEstimator() {
     delete[] distinct_tuples_out;
     delete[] previous_tuples_out;
     delete[] previous_tuples_in;
-    delete inEdgesHistogram;
-    delete outEdgesHistogram;
-    delete outVerticesHistogram;
 }
