@@ -113,16 +113,14 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
 
         if(std::regex_search(q->data, matches, directLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            inverse = true;
-            return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_out[label])};
+            return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_in[label])};
 
             //uint32_t out = outVerticesHistogram->data[label];
             //return cardStat{out, (uint32_t) num_of_edges[label], out};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            inverse = true;
             uint32_t out = inVerticesHistogram->data[label];
-            return cardStat{(uint32_t)(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_in[label], (uint32_t)(uint32_t)(distinct_tuples_in[label])};
+            return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_out[label])};
             //return  cardStat{out, (uint32_t) num_of_edges[label], out};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
@@ -146,7 +144,8 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
 
         uint32_t noOut = leftGraph.noOut;
         uint32_t noIn = rightGraph.noIn;
-        uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
+        // uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
+        uint32_t noPaths = min(leftGraph.noPaths*rightGraph.noPaths/leftGraph.noIn, leftGraph.noPaths*rightGraph.noPaths/rightGraph.noOut);
 
         return cardStat{noOut, noPaths, noIn};
     }
