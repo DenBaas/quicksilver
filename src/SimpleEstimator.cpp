@@ -82,22 +82,16 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
     std::regex directLabel (R"((\d+)\+)");
     std::regex inverseLabel (R"((\d+)\-)");
     std::smatch matches;
-    bool inverse;
+
     uint32_t label;
+
     if(q->isLeaf()) {
 
         if(std::regex_search(q->data, matches, directLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_in[label])};
-
-            //uint32_t out = outVerticesHistogram->data[label];
-            //return cardStat{out, (uint32_t) num_of_edges[label], out};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            inverse = true;
-            uint32_t out = total_tuples_in[label];
-            //return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_in[label])};
-            //which one is correct? I think the one below?
             return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_out[label])};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
@@ -110,13 +104,7 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         // evaluate the children
         auto leftGraph = SimpleEstimator::estimate(q->left);
         auto rightGraph = SimpleEstimator::estimate(q->right);
-        double outVertices = graph->getNoVertices();
-
-        // join left with right
-        //double ratio_out_left = (double)leftGraph.noPaths/leftGraph.noOut;
-        //double ratio_in_left = (double)leftGraph.noPaths/leftGraph.noIn;
-        double ratio_left_right = (double)rightGraph.noOut/outVertices;
-        double paths_per = (double)rightGraph.noPaths/rightGraph.noOut;
+        // double outVertices = graph->getNoVertices();
 
         //union estimation from the slides, R union S
         double trts,vsy,vry;
@@ -125,11 +113,11 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         trts = leftGraph.noPaths * rightGraph.noPaths;
 
         uint32_t paths = (uint32_t) min(trts/vsy,trts/vry);
-        uint32_t noOut = leftGraph.noOut;
-        uint32_t noIn = rightGraph.noIn;
-        //uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
-        cout<<"\t\tnoOut:"<<noOut<<",paths:"<<paths<<",noIn"<<noIn<<"\n";
-        return cardStat{noOut, paths, noIn};
+        // uint32_t noOut = leftGraph.noOut;
+        // uint32_t noIn = rightGraph.noIn;
+        // cout<<"\t\tnoOut:"<<noOut<<",paths:"<<paths<<",noIn"<<noIn<<"\n";
+        return cardStat{leftGraph.noOut, paths, leftGraph.noIn};
+
         //below is old
         // uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
         //uint32_t noPaths = min(leftGraph.noPaths*rightGraph.noPaths/leftGraph.noIn, leftGraph.noPaths*rightGraph.noPaths/rightGraph.noOut);
