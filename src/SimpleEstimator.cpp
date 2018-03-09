@@ -6,66 +6,47 @@
 #include "SimpleEstimator.h"
 
 using namespace std;
+int noLabels;
 
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     // works only with SimpleGraph
     graph = g;
-    total_tuples_out = new int[graph->getNoLabels()] {};
-    distinct_tuples_out = new int[graph->getNoLabels()] {};
+    noLabels = graph->getNoLabels();
+    total_tuples_out = new int[noLabels] {};
+    distinct_tuples_out = new int[noLabels] {};
 
-    total_tuples_in = new int[graph->getNoLabels()] {};
-    distinct_tuples_in = new int[graph->getNoLabels()] {};
-
-    previous_tuples_out = new int[graph->getNoLabels()] {};
-    previous_tuples_in = new int[graph->getNoLabels()] {};
-    outEdgesHistogram = new EquiWidthHistogram();
-    outVerticesHistogram = new EquiWidthHistogram();
-    inVerticesHistogram = new EquiWidthHistogram();
-    inEdgesHistogram = new EquiWidthHistogram();
+    total_tuples_in = new int[noLabels] {};
+    distinct_tuples_in = new int[noLabels] {};
 }
 
 void SimpleEstimator::prepare() {
-
     // do your prep here
-    int noLabels = graph->getNoLabels();
+    int* previous_tuples_out = new int[noLabels] {};
+    int* previous_tuples_in = new int[noLabels] {};
+    for(int i = 0; i < noLabels; i++){
+        previous_tuples_in[i] = 0;
+        previous_tuples_out[i] = 0;
+        total_tuples_in[i] = 0;
+        total_tuples_out[i] = 0;
+        distinct_tuples_in[i]= 0;
+        distinct_tuples_out[i] = 0;
+    }
     int noVertices = graph->getNoVertices();
-    outEdgesHistogram->init(noLabels);
-    inEdgesHistogram->init(noLabels);
-    outVerticesHistogram->init(noLabels);
-    inVerticesHistogram->init(noLabels);
 
     int sum = 0;
     for(int i = 0; i < noVertices; i++) {
         if (graph->reverse_adj[i].empty() && graph->adj[i].empty()) {
             sum++;
         }
-
-        int inLabelsFound[noLabels];
-        int outLabelsFound[noLabels];
-        for(int i = 0; i < noLabels; i++){
-            inLabelsFound[i] = outLabelsFound[i] = 0;
-        }
         for (auto labelTarget : graph->adj[i]) {
             total_tuples_out[labelTarget.first]++;
-            outEdgesHistogram->data[labelTarget.first]++;
-            outLabelsFound[labelTarget.first]=1;
         }
 
         for (auto labelTarget : graph->reverse_adj[i]) {
             total_tuples_in[labelTarget.first]++;
-            inEdgesHistogram->data[labelTarget.first]++;
-            inLabelsFound[labelTarget.first]=1;
         }
 
-        for(int i = 0; i < noLabels; i++){
-            if(inLabelsFound[i] == 1) {
-                inVerticesHistogram->data[i]++;
-            }
-            if(outLabelsFound[i] == 1){
-                outVerticesHistogram->data[i]++;
-            }
-        }
 
         for (int j = 0; j < noLabels; j++) {
             if (total_tuples_out[j] != previous_tuples_out[j]) {
@@ -79,14 +60,6 @@ void SimpleEstimator::prepare() {
             }
         }
     }
-    cout<<"in vertices histogram\n";
-    for(int i = 0; i < noLabels; i++)
-        cout<<inVerticesHistogram->data[i]<<"\n";
-
-    cout<<"out vertices histogram\n";
-    for(int i = 0; i < noLabels; i++)
-        cout<<outVerticesHistogram->data[i]<<"\n";
-
 
     std::cout << "Sum: " << sum << '\n' << std::endl;
     for(int j = 0; j < noLabels; j++) {
@@ -95,6 +68,8 @@ void SimpleEstimator::prepare() {
         cout << j << "th label: " << total_tuples_in[j] << '\n';
         cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
     }
+    delete[] previous_tuples_out;
+    delete[] previous_tuples_in;
 }
 
 cardStat SimpleEstimator::estimate(RPQTree *q) {
@@ -121,8 +96,8 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             inverse = true;
-            uint32_t out = inVerticesHistogram->data[label];
-            return cardStat{(uint32_t)(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_in[label], (uint32_t)(uint32_t)(distinct_tuples_in[label])};
+            uint32_t out = total_tuples_in[label];
+            return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_in[label])};
             //return  cardStat{out, (uint32_t) num_of_edges[label], out};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
@@ -143,12 +118,18 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         double ratio_left_right = (double)rightGraph.noOut/outVertices;
         double paths_per = (double)rightGraph.noPaths/rightGraph.noOut;
 
+        //union estimation from the slides, R union S
+        double trts,vsy,vry;
+        vry = leftGraph.noOut;//distinct
+        vsy = rightGraph.noIn;
+        trts = leftGraph.noPaths * rightGraph.noPaths;
 
+        uint32_t paths = (uint32_t) min(trts/vsy,trts/vry);
         uint32_t noOut = leftGraph.noOut;
         uint32_t noIn = rightGraph.noIn;
-        uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
-
-        return cardStat{noOut, noPaths, noIn};
+        //uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
+        cout<<"\t\tnoOut:"<<noOut<<",paths:"<<paths<<",noIn"<<noIn<<"\n";
+        return cardStat{noOut, paths, noIn};
     }
 
     return cardStat {0, 0, 0};
@@ -159,9 +140,4 @@ SimpleEstimator::~SimpleEstimator() {
     delete[] total_tuples_in;
     delete[] distinct_tuples_in;
     delete[] distinct_tuples_out;
-    delete[] previous_tuples_out;
-    delete[] previous_tuples_in;
-    delete inEdgesHistogram;
-    delete outEdgesHistogram;
-    delete outVerticesHistogram;
 }

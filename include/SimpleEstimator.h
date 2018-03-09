@@ -7,7 +7,6 @@
 
 #include "Estimator.h"
 #include "SimpleGraph.h"
-#include "EquiWidthHistogram.h"
 
 class SimpleEstimator : public Estimator {
 
@@ -18,13 +17,6 @@ class SimpleEstimator : public Estimator {
     int* total_tuples_in;
     int* distinct_tuples_in;
 
-    int* previous_tuples_out;
-    int* previous_tuples_in;
-
-    EquiWidthHistogram* outEdgesHistogram;
-    EquiWidthHistogram* inEdgesHistogram;
-    EquiWidthHistogram* outVerticesHistogram;
-    EquiWidthHistogram* inVerticesHistogram;
 
 public:
     explicit SimpleEstimator(std::shared_ptr<SimpleGraph> &g);
