@@ -11,11 +11,11 @@
 class SimpleEstimator : public Estimator {
 
     std::shared_ptr<SimpleGraph> graph;
-    int* total_tuples_out;
-    int* distinct_tuples_out;
+    uint32_t* total_tuples_out;
+    uint32_t* distinct_tuples_out;
 
-    int* total_tuples_in;
-    int* distinct_tuples_in;
+    uint32_t* total_tuples_in;
+    uint32_t* distinct_tuples_in;
 
 
 public:

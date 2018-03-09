@@ -6,25 +6,28 @@
 #include "SimpleEstimator.h"
 
 using namespace std;
-int noLabels;
+uint32_t noLabels;
+uint32_t distinct_out;
+uint32_t distinct_in;
+double correction;
 
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     // works only with SimpleGraph
     graph = g;
     noLabels = graph->getNoLabels();
-    total_tuples_out = new int[noLabels] {};
-    distinct_tuples_out = new int[noLabels] {};
+    total_tuples_out = new uint32_t[noLabels] {};
+    distinct_tuples_out = new uint32_t[noLabels] {};
 
-    total_tuples_in = new int[noLabels] {};
-    distinct_tuples_in = new int[noLabels] {};
+    total_tuples_in = new uint32_t[noLabels] {};
+    distinct_tuples_in = new uint32_t[noLabels] {};
 
 }
 
 void SimpleEstimator::prepare() {
     // do your prep here
-    int* previous_tuples_out = new int[noLabels] {};
-    int* previous_tuples_in = new int[noLabels] {};
+    uint32_t * previous_tuples_out = new uint32_t[noLabels] {};
+    uint32_t * previous_tuples_in = new uint32_t[noLabels] {};
     for(int i = 0; i < noLabels; i++){
         previous_tuples_in[i] = 0;
         previous_tuples_out[i] = 0;
@@ -33,12 +36,18 @@ void SimpleEstimator::prepare() {
         distinct_tuples_in[i]= 0;
         distinct_tuples_out[i] = 0;
     }
-    int noVertices = graph->getNoVertices();
 
-    int sum = 0;
+    uint32_t noVertices = graph->getNoVertices();
+
+    uint32_t distinct_out = 0;
+    uint32_t distinct_in = 0;
     for(int i = 0; i < noVertices; i++) {
-        if (graph->reverse_adj[i].empty() && graph->adj[i].empty()) {
-            sum++;
+
+        if (!graph->adj[i].empty()) {
+            distinct_out++;
+        }
+        if (!graph->reverse_adj[i].empty()) {
+            distinct_in++;
         }
         for (auto labelTarget : graph->adj[i]) {
             total_tuples_out[labelTarget.first]++;
@@ -61,7 +70,12 @@ void SimpleEstimator::prepare() {
         }
     }
 
-    std::cout << "Sum: " << sum << '\n' << std::endl;
+    correction = (double)distinct_out/distinct_in;
+
+    std::cout << "Sum: " << distinct_out << std::endl;
+    std::cout << "Sum 2: " << distinct_in << std::endl;
+    std::cout <<  "Total: " << noVertices << std::endl;
+    std::cout << "Correction: " << correction << std::endl;
     for(int j = 0; j < noLabels; j++) {
         cout << j << "th noOut: " << distinct_tuples_out[j] << '\n';
         cout << j << "th label: " << total_tuples_out[j] << '\n';
@@ -89,10 +103,10 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
 
         if(std::regex_search(q->data, matches, directLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            return cardStat{(uint32_t)(distinct_tuples_out[label]), (uint32_t)total_tuples_out[label], (uint32_t)(distinct_tuples_in[label])};
+            return cardStat{(distinct_tuples_out[label]), total_tuples_out[label], (distinct_tuples_in[label])};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            return cardStat{(uint32_t)(distinct_tuples_in[label]), (uint32_t)total_tuples_in[label], (uint32_t)(distinct_tuples_out[label])};
+            return cardStat{(distinct_tuples_in[label]), total_tuples_in[label], (distinct_tuples_out[label])};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
             return cardStat{0, 0, 0};
@@ -107,22 +121,13 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         // double outVertices = graph->getNoVertices();
 
         //union estimation from the slides, R union S
-        double trts,vsy,vry;
-        vry = leftGraph.noOut;//distinct
+        uint32_t trts,vsy,vry;
+        vry = leftGraph.noOut;
         vsy = rightGraph.noIn;
         trts = leftGraph.noPaths * rightGraph.noPaths;
-
-        uint32_t paths = (uint32_t) min(trts/vsy,trts/vry);
-        // uint32_t noOut = leftGraph.noOut;
-        // uint32_t noIn = rightGraph.noIn;
+        uint32_t paths = min(trts/vsy,trts/vry) * correction;
         // cout<<"\t\tnoOut:"<<noOut<<",paths:"<<paths<<",noIn"<<noIn<<"\n";
         return cardStat{leftGraph.noOut, paths, leftGraph.noIn};
-
-        //below is old
-        // uint32_t noPaths = leftGraph.noPaths * ratio_left_right * paths_per;
-        //uint32_t noPaths = min(leftGraph.noPaths*rightGraph.noPaths/leftGraph.noIn, leftGraph.noPaths*rightGraph.noPaths/rightGraph.noOut);
-
-        //return cardStat{noOut, noPaths, noIn};
     }
 
     return cardStat {0, 0, 0};
