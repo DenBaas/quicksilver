@@ -4,12 +4,14 @@
 
 #include "SimpleGraph.h"
 #include "SimpleEstimator.h"
+#include <chrono>
 
 using namespace std;
 uint32_t noLabels;
-uint32_t distinct_out;
-uint32_t distinct_in;
 double correction;
+
+std::regex inverseLabel (R"((\d+)\-)");
+std::regex directLabel (R"((\d+)\+)");
 
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
@@ -91,21 +93,18 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
     // perform your estimation here
 
     // evaluate according to the AST bottom-up
-
     // project out the label in the AST
-    std::regex directLabel (R"((\d+)\+)");
-    std::regex inverseLabel (R"((\d+)\-)");
-    std::smatch matches;
 
+    std::smatch matches;
     uint32_t label;
 
     if(q->isLeaf()) {
 
         if(std::regex_search(q->data, matches, directLabel)) {
-            label = (uint32_t) std::stoul(matches[1]);
+            label = std::stoul(matches[1]);
             return cardStat{(distinct_tuples_out[label]), total_tuples_out[label], (distinct_tuples_in[label])};
         } else if(std::regex_search(q->data, matches, inverseLabel)) {
-            label = (uint32_t) std::stoul(matches[1]);
+            label = std::stoul(matches[1]);
             return cardStat{(distinct_tuples_in[label]), total_tuples_in[label], (distinct_tuples_out[label])};
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
@@ -114,19 +113,17 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
     }
 
     if(q->isConcat()) {
-
         // evaluate the children
         auto leftGraph = SimpleEstimator::estimate(q->left);
         auto rightGraph = SimpleEstimator::estimate(q->right);
+
         // double outVertices = graph->getNoVertices();
 
         //union estimation from the slides, R union S
-        uint32_t trts,vsy,vry;
-        vry = leftGraph.noOut;
-        vsy = rightGraph.noIn;
-        trts = leftGraph.noPaths * rightGraph.noPaths;
-        uint32_t paths = min(trts/vsy,trts/vry) * correction;
-        // cout<<"\t\tnoOut:"<<noOut<<",paths:"<<paths<<",noIn"<<noIn<<"\n";
+        uint32_t vry = leftGraph.noOut;
+        uint32_t vsy = rightGraph.noIn;
+        uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
+        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry) * correction);
         return cardStat{leftGraph.noOut, paths, leftGraph.noIn};
     }
 
