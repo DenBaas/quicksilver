@@ -7,7 +7,6 @@
 
 #include "Estimator.h"
 #include "SimpleGraph.h"
-#include "EquiWidthHistogram.h"
 
 class SimpleEstimator : public Estimator {
 
