@@ -91,7 +91,7 @@ void SimpleEstimator::prepare() {
     }
     //correction = (double)distinct_out[0]/distinct_in[0];
 
-    /*
+
     std::cout << "Sum: " << distinct_out << std::endl;
     std::cout << "Sum 2: " << distinct_in << std::endl;
     std::cout <<  "Total: " << noVertices << std::endl;
@@ -102,14 +102,14 @@ void SimpleEstimator::prepare() {
         cout << j << "th label: " << total_tuples_in[j] << '\n';
         cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
     }
-    */
+    /*
     for(int i = 0; i < WIDTH; i++) {
         std::cout << i << " out: " << out[i] << std::endl;
         std::cout << i << " distinct out: " << distinct_out[i] << std::endl;
 
         std::cout << i << " in: " << in[i] << std::endl;
         std::cout << i << " distinct in: " << distinct_in[i] << std::endl;
-    }
+    }*/
 
     delete[] previous_tuples_out;
     delete[] previous_tuples_in;
@@ -146,12 +146,24 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
 
         // double outVertices = graph->getNoVertices();
 
-        //union estimation from the slides, R union S
+        // intersection estimation
+        uint32_t tr = leftGraph.noPaths;
+        uint32_t ts = rightGraph.noPaths;
+        uint32_t intersect = min(tr, ts)/2;
+
+
+        // join estimation from the slides, R union S
         uint32_t vry = leftGraph.noOut;
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
-        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry) * correction);
-        return cardStat{leftGraph.noOut, paths, rightGraph.noIn};
+        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry)); //* correction);
+
+        uint32_t outNodes = (uint32_t )(vry / ((double)paths/leftGraph.noPaths));
+        uint32_t inNodes = (uint32_t )(vsy / ((double)paths/leftGraph.noPaths));
+
+        std::cout << '\n' << outNodes;
+
+        return cardStat{outNodes, paths, inNodes};
     }
 
     return cardStat {0, 0, 0};
