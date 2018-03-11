@@ -10,8 +10,11 @@ using namespace std;
 uint32_t noLabels;
 double correction;
 
+constexpr int WIDTH = 10;
+
 std::regex inverseLabel (R"((\d+)\-)");
 std::regex directLabel (R"((\d+)\+)");
+
 
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
@@ -23,13 +26,12 @@ SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     total_tuples_in = new uint32_t[noLabels] {};
     distinct_tuples_in = new uint32_t[noLabels] {};
-
 }
 
 void SimpleEstimator::prepare() {
     // do your prep here
-    uint32_t * previous_tuples_out = new uint32_t[noLabels] {};
-    uint32_t * previous_tuples_in = new uint32_t[noLabels] {};
+    uint32_t* previous_tuples_out = new uint32_t[noLabels] {};
+    uint32_t* previous_tuples_in = new uint32_t[noLabels] {};
     for(int i = 0; i < noLabels; i++){
         previous_tuples_in[i] = 0;
         previous_tuples_out[i] = 0;
@@ -43,7 +45,14 @@ void SimpleEstimator::prepare() {
 
     uint32_t distinct_out = 0;
     uint32_t distinct_in = 0;
+
+    int tracker = 0;
+
     for(int i = 0; i < noVertices; i++) {
+
+        if(i > noVertices/10.0 * (tracker + 1)) {
+            tracker++;
+        }
 
         if (!graph->adj[i].empty()) {
             distinct_out++;
@@ -124,7 +133,7 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
         uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry) * correction);
-        return cardStat{leftGraph.noOut, paths, leftGraph.noIn};
+        return cardStat{leftGraph.noOut, paths, rightGraph.noIn};
     }
 
     return cardStat {0, 0, 0};
