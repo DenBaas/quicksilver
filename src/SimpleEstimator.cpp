@@ -22,25 +22,18 @@ SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
     // works only with SimpleGraph
     graph = g;
     noLabels = graph->getNoLabels();
+
     total_tuples_out = new uint32_t[noLabels] {};
     distinct_tuples_out = new uint32_t[noLabels] {};
-
     total_tuples_in = new uint32_t[noLabels] {};
     distinct_tuples_in = new uint32_t[noLabels] {};
+
 }
 
 void SimpleEstimator::prepare() {
     // do your prep here
     uint32_t* previous_tuples_out = new uint32_t[noLabels] {};
     uint32_t* previous_tuples_in = new uint32_t[noLabels] {};
-    for(int i = 0; i < noLabels; i++){
-        previous_tuples_in[i] = 0;
-        previous_tuples_out[i] = 0;
-        total_tuples_in[i] = 0;
-        total_tuples_out[i] = 0;
-        distinct_tuples_in[i]= 0;
-        distinct_tuples_out[i] = 0;
-    }
 
     uint32_t noVertices = graph->getNoVertices();
 
@@ -91,30 +84,7 @@ void SimpleEstimator::prepare() {
         }
     }
 
-    correction = 0;
-    for(int i = 0; i < WIDTH; i++) {
-        correction += ((double)distinct_out[i]/distinct_in[i]) / 10;
-    }
-    //correction = (double)distinct_out[0]/distinct_in[0];
-
-    std::cout <<  "Total: " << noVertices << std::endl;
-    std::cout << "Correction: " << correction << std::endl;
-    for(int j = 0; j < noLabels; j++) {
-        cout << j << "th noOut: " << distinct_tuples_out[j] << '\n';
-        cout << j << "th label: " << total_tuples_out[j] << '\n';
-        cout << j << "th label: " << total_tuples_in[j] << '\n';
-        cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
-    }
-    std::cout << "Distinct outgoing: " << distinct_outgoing << std::endl;
-    std::cout << "Distinct incoming: " << distinct_incoming << std::endl;
-    /*
-    for(int i = 0; i < WIDTH; i++) {
-        std::cout << i << " out: " << out[i] << std::endl;
-        std::cout << i << " distinct out: " << distinct_out[i] << std::endl;
-
-        std::cout << i << " in: " << in[i] << std::endl;
-        std::cout << i << " distinct in: " << distinct_in[i] << std::endl;
-    }*/
+    correction = (double)distinct_outgoing/distinct_incoming;
 
     delete[] previous_tuples_out;
     delete[] previous_tuples_in;
@@ -123,9 +93,6 @@ void SimpleEstimator::prepare() {
 cardStat SimpleEstimator::estimate(RPQTree *q) {
 
     // perform your estimation here
-
-    // evaluate according to the AST bottom-up
-    // project out the label in the AST
 
     std::smatch matches;
     uint32_t label;
@@ -149,24 +116,13 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         auto leftGraph = SimpleEstimator::estimate(q->left);
         auto rightGraph = SimpleEstimator::estimate(q->right);
 
-        // double outVertices = graph->getNoVertices();
-
-        // intersection estimation
-        uint32_t tr = leftGraph.noPaths;
-        uint32_t ts = rightGraph.noPaths;
-        uint32_t intersect = min(tr, ts)/2;
-
-
-        // join estimation from the slides, R union S
+        // join estimation from the slides, R join S
         uint32_t vry = leftGraph.noOut;
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
-        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry)); // * correction);
+        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry) * correction);
 
-        uint32_t outNodes = (uint32_t )(vry * (double)rightGraph.noOut / distinct_outgoing);
-        uint32_t inNodes =  (uint32_t )(vsy * (double)rightGraph.noOut / distinct_outgoing);
-
-        return cardStat{outNodes, paths, inNodes};
+        return cardStat{vry, paths, vsy};
     }
 
     return cardStat {0, 0, 0};
