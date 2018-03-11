@@ -8,6 +8,8 @@
 
 using namespace std;
 uint32_t noLabels;
+uint32_t distinct_outgoing;
+uint32_t distinct_incoming;
 double correction;
 
 constexpr int WIDTH = 10;
@@ -48,6 +50,8 @@ void SimpleEstimator::prepare() {
     uint32_t in[WIDTH] = {};
 
     int tracker = 0;
+    distinct_outgoing = 0;
+    distinct_incoming = 0;
 
     for(int i = 0; i < noVertices; i++) {
 
@@ -57,9 +61,11 @@ void SimpleEstimator::prepare() {
 
         if (!graph->adj[i].empty()) {
             distinct_out[tracker]++;
+            distinct_outgoing++;
         }
         if (!graph->reverse_adj[i].empty()) {
             distinct_in[tracker]++;
+            distinct_incoming++;
         }
 
         for (auto labelTarget : graph->adj[i]) {
@@ -91,9 +97,6 @@ void SimpleEstimator::prepare() {
     }
     //correction = (double)distinct_out[0]/distinct_in[0];
 
-
-    std::cout << "Sum: " << distinct_out << std::endl;
-    std::cout << "Sum 2: " << distinct_in << std::endl;
     std::cout <<  "Total: " << noVertices << std::endl;
     std::cout << "Correction: " << correction << std::endl;
     for(int j = 0; j < noLabels; j++) {
@@ -102,6 +105,8 @@ void SimpleEstimator::prepare() {
         cout << j << "th label: " << total_tuples_in[j] << '\n';
         cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
     }
+    std::cout << "Distinct outgoing: " << distinct_outgoing << std::endl;
+    std::cout << "Distinct incoming: " << distinct_incoming << std::endl;
     /*
     for(int i = 0; i < WIDTH; i++) {
         std::cout << i << " out: " << out[i] << std::endl;
@@ -156,12 +161,10 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         uint32_t vry = leftGraph.noOut;
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
-        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry)); //* correction);
+        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry)); // * correction);
 
-        uint32_t outNodes = (uint32_t )(vry / ((double)paths/leftGraph.noPaths));
-        uint32_t inNodes = (uint32_t )(vsy / ((double)paths/leftGraph.noPaths));
-
-        std::cout << '\n' << outNodes;
+        uint32_t outNodes = (uint32_t )(vry * (double)rightGraph.noOut / distinct_outgoing);
+        uint32_t inNodes =  (uint32_t )(vsy * (double)rightGraph.noOut / distinct_outgoing);
 
         return cardStat{outNodes, paths, inNodes};
     }
