@@ -15,7 +15,6 @@ constexpr int WIDTH = 10;
 std::regex inverseLabel (R"((\d+)\-)");
 std::regex directLabel (R"((\d+)\+)");
 
-
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
     // works only with SimpleGraph
@@ -43,8 +42,10 @@ void SimpleEstimator::prepare() {
 
     uint32_t noVertices = graph->getNoVertices();
 
-    uint32_t distinct_out = 0;
-    uint32_t distinct_in = 0;
+    uint32_t distinct_out[WIDTH] = {};
+    uint32_t distinct_in[WIDTH] = {};
+    uint32_t out[WIDTH] = {};
+    uint32_t in[WIDTH] = {};
 
     int tracker = 0;
 
@@ -55,17 +56,20 @@ void SimpleEstimator::prepare() {
         }
 
         if (!graph->adj[i].empty()) {
-            distinct_out++;
+            distinct_out[tracker]++;
         }
         if (!graph->reverse_adj[i].empty()) {
-            distinct_in++;
+            distinct_in[tracker]++;
         }
+
         for (auto labelTarget : graph->adj[i]) {
             total_tuples_out[labelTarget.first]++;
+            out[tracker]++;
         }
 
         for (auto labelTarget : graph->reverse_adj[i]) {
             total_tuples_in[labelTarget.first]++;
+            in[tracker]++;
         }
 
         for (int j = 0; j < noLabels; j++) {
@@ -81,8 +85,13 @@ void SimpleEstimator::prepare() {
         }
     }
 
-    correction = (double)distinct_out/distinct_in;
+    correction = 0;
+    for(int i = 0; i < WIDTH; i++) {
+        correction += ((double)distinct_out[i]/distinct_in[i]) / 10;
+    }
+    //correction = (double)distinct_out[0]/distinct_in[0];
 
+    /*
     std::cout << "Sum: " << distinct_out << std::endl;
     std::cout << "Sum 2: " << distinct_in << std::endl;
     std::cout <<  "Total: " << noVertices << std::endl;
@@ -93,6 +102,15 @@ void SimpleEstimator::prepare() {
         cout << j << "th label: " << total_tuples_in[j] << '\n';
         cout << j << "th noIn: " << distinct_tuples_in[j] << '\n';
     }
+    */
+    for(int i = 0; i < WIDTH; i++) {
+        std::cout << i << " out: " << out[i] << std::endl;
+        std::cout << i << " distinct out: " << distinct_out[i] << std::endl;
+
+        std::cout << i << " in: " << in[i] << std::endl;
+        std::cout << i << " distinct in: " << distinct_in[i] << std::endl;
+    }
+
     delete[] previous_tuples_out;
     delete[] previous_tuples_in;
 }
