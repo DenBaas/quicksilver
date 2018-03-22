@@ -5,11 +5,15 @@
 #include "SimpleEstimator.h"
 #include "SimpleEvaluator.h"
 
+std::regex dirLabel (R"((\d+)\+)");
+std::regex invLabel (R"((\d+)\-)");
+
 SimpleEvaluator::SimpleEvaluator(std::shared_ptr<SimpleGraph> &g) {
 
     // works only with SimpleGraph
     graph = g;
     est = nullptr; // estimator not attached by default
+    total_tuples = new uint32_t[graph->getNoLabels()];
 }
 
 void SimpleEvaluator::attachEstimator(std::shared_ptr<SimpleEstimator> &e) {
@@ -22,6 +26,13 @@ void SimpleEvaluator::prepare() {
     if(est != nullptr) est->prepare();
 
     // prepare other things here.., if necessary
+    uint32_t noVertices = graph->getNoVertices();
+
+    for(int i = 0; i < noVertices; i++) {
+        for(auto labelTarget : graph->adj[i]) {
+            total_tuples[labelTarget.first]++;
+        }
+    }
 
 }
 
@@ -104,18 +115,15 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
 
     if(q->isLeaf()) {
         // project out the label in the AST
-        std::regex directLabel (R"((\d+)\+)");
-        std::regex inverseLabel (R"((\d+)\-)");
-
         std::smatch matches;
 
         uint32_t label;
         bool inverse;
 
-        if(std::regex_search(q->data, matches, directLabel)) {
+        if(std::regex_search(q->data, matches, dirLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             inverse = false;
-        } else if(std::regex_search(q->data, matches, inverseLabel)) {
+        } else if(std::regex_search(q->data, matches, invLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
             inverse = true;
         } else {
@@ -129,18 +137,68 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
     if(q->isConcat()) {
 
         // evaluate the children
-        auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
-        auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
+        bool decision = query_order[0];
+        query_order.erase(query_order.begin());
 
-        // join left with right
-        return SimpleEvaluator::join(leftGraph, rightGraph);
+        if(decision) {
+            auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
+            auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
 
+            // join left with right
+            return SimpleEvaluator::join(leftGraph, rightGraph);
+
+        } else {
+            auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
+            auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
+
+            // join left with right
+            return SimpleEvaluator::join(leftGraph, rightGraph);
+        }
     }
 
     return nullptr;
 }
 
+void SimpleEvaluator::planQuery(RPQTree* q) {
+    if(q->isLeaf()) {
+        // project out the label in the AST
+        std::smatch matches;
+
+        uint32_t label;
+
+        if(std::regex_search(q->data, matches, dirLabel)) {
+            label = (uint32_t) std::stoul(matches[1]);
+            list_labels.push_back(label);
+        } else if(std::regex_search(q->data, matches, invLabel)) {
+            label = (uint32_t) std::stoul(matches[1]);
+            list_labels.push_back(label);
+        } else {
+            std::cerr << "Label parsing failed!" << std::endl;
+        }
+    }
+
+    if(q->isConcat()) {
+        // evaluate the children
+        SimpleEvaluator::planQuery(q->left);
+        SimpleEvaluator::planQuery(q->right);
+    }
+}
+
 cardStat SimpleEvaluator::evaluate(RPQTree *query) {
+    planQuery(query);
+    uint32_t size_list[list_labels.size() - 1];
+    for(int i = 0; i < list_labels.size() - 1; i++) {
+        size_list[i] = total_tuples[list_labels[i]] * total_tuples[list_labels[i]];
+        std::cout << "Size: " << size_list[i] << std::endl;
+    }
+    for(int i = 0; i < list_labels.size() - 2; i++) {
+        if(size_list[i] > size_list[i+1]) {
+            query_order.push_back(false);
+        }
+    }
+    query_order.push_back(true);
+
     auto res = evaluate_aux(query);
+    list_labels.clear();
     return SimpleEvaluator::computeStats(res);
 }

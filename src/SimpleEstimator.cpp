@@ -6,10 +6,7 @@
 #include "SimpleEstimator.h"
 #include <chrono>
 
-using namespace std;
 uint32_t noLabels;
-uint32_t distinct_outgoing;
-uint32_t distinct_incoming;
 double correction;
 
 constexpr int WIDTH = 10;
@@ -37,14 +34,10 @@ void SimpleEstimator::prepare() {
 
     uint32_t noVertices = graph->getNoVertices();
 
-    uint32_t distinct_out[WIDTH] = {};
-    uint32_t distinct_in[WIDTH] = {};
-    uint32_t out[WIDTH] = {};
-    uint32_t in[WIDTH] = {};
-
     int tracker = 0;
-    distinct_outgoing = 0;
-    distinct_incoming = 0;
+    uint32_t distinct_out = 0;
+    uint32_t distinct_in = 0;
+    uint32_t intersect = 0;
 
     for(int i = 0; i < noVertices; i++) {
 
@@ -53,22 +46,22 @@ void SimpleEstimator::prepare() {
         }
 
         if (!graph->adj[i].empty()) {
-            distinct_out[tracker]++;
-            distinct_outgoing++;
+            distinct_out++;
         }
         if (!graph->reverse_adj[i].empty()) {
-            distinct_in[tracker]++;
-            distinct_incoming++;
+            distinct_in++;
+        }
+
+        if (!graph->adj[i].empty() && !graph->reverse_adj[i].empty()) {
+            intersect++;
         }
 
         for (auto labelTarget : graph->adj[i]) {
             total_tuples_out[labelTarget.first]++;
-            out[tracker]++;
         }
 
         for (auto labelTarget : graph->reverse_adj[i]) {
             total_tuples_in[labelTarget.first]++;
-            in[tracker]++;
         }
 
         for (int j = 0; j < noLabels; j++) {
@@ -84,7 +77,8 @@ void SimpleEstimator::prepare() {
         }
     }
 
-    correction = (double)distinct_outgoing/distinct_incoming;
+    std::cout << "intersect: " << intersect << std::endl;
+    correction = (double)distinct_out/distinct_in;
 
     delete[] previous_tuples_out;
     delete[] previous_tuples_in;
@@ -120,7 +114,7 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         uint32_t vry = leftGraph.noOut;
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
-        uint32_t paths = (uint32_t)(min(trts/vsy,trts/vry) * correction);
+        uint32_t paths = (uint32_t)(std::min(trts/vsy,trts/vry) * correction);
 
         return cardStat{vry, paths, vsy};
     }
