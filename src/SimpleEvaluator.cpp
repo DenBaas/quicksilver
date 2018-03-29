@@ -2,11 +2,20 @@
 // Created by Nikolay Yakovets on 2018-02-02.
 //
 
-#include "SimpleEstimator.h"
-#include "SimpleEvaluator.h"
+#include <regex>
+#include "../include/SimpleEvaluator.h"
+#include "../include/SimpleEstimator.h"
+#include <iterator>
+#include <vector>
+#include <initializer_list>
+#include <sstream>
 
 std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
+int imax = std::numeric_limits<int>::max();
+//std::pair<std::vector<int>, int> bestPlan({},imax);
+
+std::map<std::string, int> costs;
 
 SimpleEvaluator::SimpleEvaluator(std::shared_ptr<SimpleGraph> &g) {
 
@@ -27,10 +36,16 @@ void SimpleEvaluator::prepare() {
 
     // prepare other things here.., if necessary
     uint32_t noVertices = graph->getNoVertices();
+    int labels = graph->getNoLabels();
+    for(int i = 0; i < labels; i++){
+        costs.insert(std::pair<std::string, int>(std::to_string(i),0));
+    }
 
+    //TODO: this is duplicated code
     for(int i = 0; i < noVertices; i++) {
         for(auto labelTarget : graph->adj[i]) {
             total_tuples[labelTarget.first]++;
+            costs[std::to_string(labelTarget.first)]++;
         }
     }
 
@@ -159,6 +174,87 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
     return nullptr;
 }
 
+/*
+ * TODO: parse result to query
+ */
+std::pair<std::vector<std::string>, int> SimpleEvaluator::findBestPlan(std::pair<std::vector<std::string>, int> plan){
+    if(plan.second != imax){
+        return plan;
+    }
+    if(plan.first.size() == 1){
+        //calculate cost
+        plan.second = costs[plan.first[0]];
+        return plan;
+    }
+    else{
+        auto subsets = getAllSubsets(plan.first);
+        for(std::vector<std::string> subset: subsets){
+            if(subset.size() > 0) {
+                std::vector<std::string> s = plan.first;
+                for (auto j: subset) {
+                    auto i = std::find(s.begin(), s.end(), j);
+                    if (i != s.end()) {
+                        s.erase(i);
+                    }
+                }
+                if (s.size() != 0){ //this means s == subset
+                    auto p1 = findBestPlan(std::pair<std::vector<std::string>, int>(subset, imax));
+                    auto p2 = findBestPlan(std::pair<std::vector<std::string>, int>(s, imax));
+                    //estimate join cost
+                    int p12 = p1.second * p2.second;
+                    int cost = std::min(p12/p1.second,p12/p2.second);
+                    if(cost < plan.second){
+                        std::pair<std::vector<std::string>,int> result;
+                        result.second = cost;
+                        result.first = p1.first;
+                        result.first.insert(std::end(result.first), std::begin(p2.first), std::end(p2.first));
+                        std::string j1 = "---";
+                        std::string j2 = " with ";
+                        for(std::string x: p1.first){
+                            j1+=x;
+                        }
+                        for(std::string x: p2.first){
+                            j2+=x;
+                        }
+                        j2+="---";
+                        result.first.clear();
+                        result.first.push_back(j1.append(j2));
+                        return result;
+                    }
+                    return plan;
+                }
+            }
+        }
+    }
+}
+
+std::vector<std::vector<std::string>> SimpleEvaluator::getAllSubsets(std::vector<std::string> plan)
+{
+    std::vector<std::vector<std::string>> subsets;
+    int n = plan.size();
+    for (int i = 0; i < (int) pow(2, n); i++)
+    {
+        std::vector<std::string> sset;
+
+        // consider each element in the set
+        for (int j = 0; j < n; j++)
+        {
+            // Check if jth bit in the i is set. If the bit
+            // is set, we consider jth element from set
+            if ((i & (1 << j)) != 0) {
+                sset.push_back(plan[j]);
+            }
+        }
+
+        // if subset is encountered for the first time
+        // If we use set<string>, we can directly insert
+        if (std::find(subsets.begin(), subsets.end(), sset) == subsets.end()){
+            subsets.push_back(sset);
+        }
+    }
+    return subsets;
+}
+
 void SimpleEvaluator::planQuery(RPQTree* q) {
     if(q->isLeaf()) {
         // project out the label in the AST
@@ -168,10 +264,10 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
 
         if(std::regex_search(q->data, matches, dirLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            list_labels.push_back(label);
+            query_labels.push_back(label);
         } else if(std::regex_search(q->data, matches, invLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            list_labels.push_back(label);
+            query_labels.push_back(label);
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
         }
@@ -185,20 +281,30 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
 }
 
 cardStat SimpleEvaluator::evaluate(RPQTree *query) {
+    //bestPlan.first.clear();
+    //bestPlan.second = imax;
     planQuery(query);
-    uint32_t size_list[list_labels.size() - 1];
-    for(int i = 0; i < list_labels.size() - 1; i++) {
-        size_list[i] = total_tuples[list_labels[i]] * total_tuples[list_labels[i]];
-        std::cout << "Size: " << size_list[i] << std::endl;
+    std::vector<std::string> labelsAsInts{};
+    for(uint32_t i: query_labels){
+        labelsAsInts.push_back(std::to_string((int) i));
     }
-    for(int i = 0; i < list_labels.size() - 2; i++) {
-        if(size_list[i] > size_list[i+1]) {
+    std::pair<std::vector<std::string>, int> input(labelsAsInts, imax);
+    auto plan = findBestPlan(input);
+    query_labels.clear();
+    return cardStat{1,1,1};
+    /*
+    uint32_t size_query[query_labels.size() - 1];
+    for(int i = 0; i < query_labels.size() - 1; i++) {
+        size_query[i] = total_tuples[query_labels[i]] * total_tuples[query_labels[i]];
+        std::cout << "Size: " << size_query[i] << std::endl;
+    }
+    for(int i = 0; i < query_labels.size() - 2; i++) {
+        if(size_query[i] > size_query[i+1]) {
             query_order.push_back(false);
         }
     }
     query_order.push_back(true);
 
     auto res = evaluate_aux(query);
-    list_labels.clear();
-    return SimpleEvaluator::computeStats(res);
+    return SimpleEvaluator::computeStats(res);*/
 }

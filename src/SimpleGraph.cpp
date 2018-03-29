@@ -2,7 +2,7 @@
 // Created by Nikolay Yakovets on 2018-01-31.
 //
 
-#include "SimpleGraph.h"
+#include "../include/SimpleGraph.h"
 
 SimpleGraph::SimpleGraph(uint32_t n)   {
     setNoVertices(n);

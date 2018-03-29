@@ -10,14 +10,13 @@
 
 class SimpleEstimator : public Estimator {
 
+public:
     std::shared_ptr<SimpleGraph> graph;
     uint32_t* total_tuples_out;
     uint32_t* distinct_tuples_out;
 
     uint32_t* total_tuples_in;
     uint32_t* distinct_tuples_in;
-
-public:
     explicit SimpleEstimator(std::shared_ptr<SimpleGraph> &g);
     ~SimpleEstimator();
 

@@ -122,6 +122,7 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
     return cardStat {0, 0, 0};
 }
 
+
 SimpleEstimator::~SimpleEstimator() {
     delete[] total_tuples_out;
     delete[] total_tuples_in;

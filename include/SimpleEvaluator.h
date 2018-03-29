@@ -8,17 +8,19 @@
 
 #include <memory>
 #include <cmath>
+#include <set>
 #include "SimpleGraph.h"
 #include "RPQTree.h"
 #include "Evaluator.h"
 #include "Graph.h"
+#include "SimpleEstimator.h"
 
 class SimpleEvaluator : public Evaluator {
 
     std::shared_ptr<SimpleGraph> graph;
     std::shared_ptr<SimpleEstimator> est;
     uint32_t* total_tuples;
-    std::vector<uint32_t> list_labels;
+    std::vector<uint32_t> query_labels;
     std::vector<bool> query_order;
 
 public:
@@ -29,6 +31,7 @@ public:
     void prepare() override ;
     cardStat evaluate(RPQTree *query) override ;
     void planQuery(RPQTree *q);
+    std::pair<std::vector<std::string>, int> findBestPlan(std::pair<std::vector<std::string>, int> plan);
 
     void attachEstimator(std::shared_ptr<SimpleEstimator> &e);
 
@@ -37,6 +40,9 @@ public:
     static std::shared_ptr<SimpleGraph> join(std::shared_ptr<SimpleGraph> &left, std::shared_ptr<SimpleGraph> &right);
 
     static cardStat computeStats(std::shared_ptr<SimpleGraph> &g);
+
+private:
+    std::vector<std::vector<std::string>> getAllSubsets(std::vector<std::string> plan);
 
 };
 
