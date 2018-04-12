@@ -14,6 +14,7 @@ std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
 int imax = std::numeric_limits<int>::max();
 //std::pair<std::vector<int>, int> bestPlan({},imax);
+int sid = 0;
 
 std::map<std::string, int> costs;
 
@@ -48,6 +49,8 @@ void SimpleEvaluator::prepare() {
             costs[std::to_string(labelTarget.first)]++;
         }
     }
+    costs["1"]+=1000;
+    costs["2"]+=1000;
 
 }
 
@@ -106,7 +109,11 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
 
     auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
     out->setNoLabels(1);
-
+    /*
+     * check for every vertex v of the left graph
+     * get ALL THE EDGES of the vertices on the right side where v goes to
+     *
+     */
     for(uint32_t leftSource = 0; leftSource < left->getNoVertices(); leftSource++) {
         for (auto labelTarget : left->adj[leftSource]) {
 
@@ -202,11 +209,32 @@ std::pair<std::vector<std::string>, int> SimpleEvaluator::findBestPlan(std::pair
                     auto p2 = findBestPlan(std::pair<std::vector<std::string>, int>(s, imax));
                     //estimate join cost
                     int p12 = p1.second * p2.second;
-                    int cost = std::min(p12/p1.second,p12/p2.second);
+                    int cost = p1.second + p2.second + std::min(p12/p1.second,p12/p2.second);
                     if(cost < plan.second){
+                        //TODO: refine this
+                        std::string sid1 = "(" + std::to_string(sid) + ")";
+                        sid++;
+                        std::string sid2 = "(" + std::to_string(sid) + ")";
+                        std::string job1 = sid1 + "--";
+                        std::string job2 = sid2 + "-";
+                        for(std::string x: p1.first){
+                            job1+=(x + "-");
+                        }
+                        for(std::string x: p2.first){
+                            job2+=(x + "-");
+                        }
+                        std::string join = "join between" + sid1 + sid2;
+                        sid++;
+
+
                         std::pair<std::vector<std::string>,int> result;
                         result.second = cost;
-                        result.first = p1.first;
+                        result.first.push_back(job1);
+                        result.first.push_back(job2);
+                        result.first.push_back(join);
+
+
+                        /*result.first = p1.first;
                         result.first.insert(std::end(result.first), std::begin(p2.first), std::end(p2.first));
                         std::string j1 = "---";
                         std::string j2 = " with ";
@@ -218,7 +246,7 @@ std::pair<std::vector<std::string>, int> SimpleEvaluator::findBestPlan(std::pair
                         }
                         j2+="---";
                         result.first.clear();
-                        result.first.push_back(j1.append(j2));
+                        result.first.push_back(j1.append(j2));*/
                         return result;
                     }
                     return plan;

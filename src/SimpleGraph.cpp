@@ -4,21 +4,28 @@
 
 #include "../include/SimpleGraph.h"
 
+
 SimpleGraph::SimpleGraph(uint32_t n)   {
     setNoVertices(n);
 }
+
+bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
+bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
+
 
 uint32_t SimpleGraph::getNoVertices() const {
     return V;
 }
 
 void SimpleGraph::setNoVertices(uint32_t n) {
+    //TODO: delete this
     V = n;
     adj.resize(V);
     reverse_adj.resize(V);
 }
 
 uint32_t SimpleGraph::getNoEdges() const {
+    //TODO: delete this
     uint32_t sum = 0;
     for (const auto & l : adj)
         sum += l.size();
@@ -63,15 +70,45 @@ uint32_t SimpleGraph::getNoLabels() const {
 
 void SimpleGraph::setNoLabels(uint32_t noLabels) {
     L = noLabels;
+    edges.resize(noLabels);
+    reversedIndexes.resize(noLabels);
+    noEdges.resize(noLabels);
+    for(int i = 0; i < noLabels; i++){
+        noEdges[i] = 0;
+    }
 }
 
+/*
+ * Used on sorting
+ */
+bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j){
+    return i.second < j.second;
+}
+
+bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j){
+    return i.first < j.first;
+}
+
+/*
+ * It is sorted after insertion
+ *
+ * nvm about the pointers for now, the rev_adj list is faster to build without pointers. With pointers you have to find the edgeLabel again in the edges, which is O(log n) or O(n) if std::find is used.
+ */
 void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
-    if(from >= V || to >= V || edgeLabel >= L)
-        throw std::runtime_error(std::string("Edge data out of bounds: ") +
-                                         "(" + std::to_string(from) + "," + std::to_string(to) + "," +
-                                         std::to_string(edgeLabel) + ")");
-    adj[from].emplace_back(std::make_pair(edgeLabel, to));
-    reverse_adj[to].emplace_back(std::make_pair(edgeLabel, from));
+    //update stats
+    noEdges[edgeLabel]++;
+    uint32_t size1 = sizeof(std::pair<uint32_t, uint32_t>);
+    uint32_t size2 = sizeof(std::pair<uint32_t, uint32_t>*);
+    //forward
+    auto itBeginForward = edges[edgeLabel].begin();
+    std::pair<uint32_t,uint32_t> newEdgeForward(from, to);
+    auto itToInsertForward = std::lower_bound(itBeginForward, edges[edgeLabel].end(), newEdgeForward, sortEdgeForward);
+    edges[edgeLabel].insert(itToInsertForward, newEdgeForward);
+    //backward
+    auto itBeginBackward = reversedIndexes[edgeLabel].begin();
+    std::pair<uint32_t, uint32_t> newEdgeBackward(from, to);
+    auto itToInsertBackward = std::lower_bound(itBeginBackward, reversedIndexes[edgeLabel].end(), newEdgeBackward, sortEdgeBackward);
+    reversedIndexes[edgeLabel].insert(itToInsertBackward, newEdgeBackward);
 }
 
 void SimpleGraph::readFromContiguousFile(const std::string &fileName) {
@@ -102,7 +139,6 @@ void SimpleGraph::readFromContiguousFile(const std::string &fileName) {
             uint32_t subject = (uint32_t) std::stoul(matches[1]);
             uint32_t predicate = (uint32_t) std::stoul(matches[2]);
             uint32_t object = (uint32_t) std::stoul(matches[3]);
-
             addEdge(subject, object, predicate);
         }
     }
