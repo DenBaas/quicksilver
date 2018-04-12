@@ -12,6 +12,7 @@
 #include <regex>
 #include <fstream>
 #include "Graph.h"
+#include "forward_list"
 
 class SimpleGraph : public Graph {
 public:
@@ -30,14 +31,17 @@ public:
      * reversedIndexes: each entry in this vector corespondents to a label. Each entry is a list of pointers where each
      *                  pointer points to an edge pair. It is sorted on the begin points.
      */
-    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> edges;
-    //std::vector<std::vector<std::pair<uint32_t, uint32_t>*>> reversedIndexes;
     /*
      * TODO: add this to the report: https://stackoverflow.com/questions/2209224/vector-vs-list-in-stl#2209564
      * TODO: the pair is 8 bytes and the pointer to the pair only 4 bytes.
      *
+     * TODO: forward list?
      */
-    std::vector<std::vector<std::pair<uint32_t, uint32_t>>> reversedIndexes;
+    //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> edges;
+    //std::vector<std::vector<std::pair<uint32_t, uint32_t>*>> reversedIndexes;
+    //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> reversedIndexes;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> edges2;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>*>> reversedIndexes2;
     std::vector<uint32_t> noEdges;
 
 protected:
