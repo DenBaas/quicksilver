@@ -40,8 +40,8 @@ public:
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> edges;
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>*>> reversedIndexes;
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> reversedIndexes;
-    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> edges2;
-    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>*>> reversedIndexes2;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> edges;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>*>> reversedEdges;
     std::vector<uint32_t> noEdges;
 
 protected:
