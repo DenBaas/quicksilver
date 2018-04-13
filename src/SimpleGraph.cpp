@@ -18,18 +18,12 @@ uint32_t SimpleGraph::getNoVertices() const {
 }
 
 void SimpleGraph::setNoVertices(uint32_t n) {
-    //TODO: delete this
     V = n;
-    adj.resize(V);
-    reverse_adj.resize(V);
 }
 
 uint32_t SimpleGraph::getNoEdges() const {
-    //TODO: delete this
-    uint32_t sum = 0;
-    for (const auto & l : adj)
-        sum += l.size();
-    return sum;
+    //TODO: move the code from estimator to here
+    return 0;
 }
 
 // sort on the second item in the pair, then on the first (ascending order)
@@ -40,27 +34,8 @@ bool sortPairs(const std::pair<uint32_t,uint32_t> &a, const std::pair<uint32_t,u
 }
 
 uint32_t SimpleGraph::getNoDistinctEdges() const {
-    uint32_t sum = 0;
-
-    for (auto sourceVec : adj) {
-
-        std::sort(sourceVec.begin(), sourceVec.end(), sortPairs);
-
-        uint32_t prevTarget = 0;
-        uint32_t prevLabel = 0;
-        bool first = true;
-
-        for (const auto &labelTgtPair : sourceVec) {
-            if (first || !(prevTarget == labelTgtPair.second && prevLabel == labelTgtPair.first)) {
-                first = false;
-                sum++;
-                prevTarget = labelTgtPair.second;
-                prevLabel = labelTgtPair.first;
-            }
-        }
-    }
-
-    return sum;
+    //TODO: move the code from estimator to here
+    return 0;
 }
 
 uint32_t SimpleGraph::getNoLabels() const {

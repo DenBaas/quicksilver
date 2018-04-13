@@ -16,9 +16,10 @@
 
 class SimpleGraph : public Graph {
 public:
+    //TODO: remove
     //beginpoint-label-endpoint
-    std::vector<std::vector<std::pair<uint32_t,uint32_t>>> adj;
-    std::vector<std::vector<std::pair<uint32_t,uint32_t>>> reverse_adj; // vertex adjacency list
+    //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> adj;
+    //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> reverse_adj; // vertex adjacency list
 
 
     //NEW DATASTRUCTURE
@@ -61,6 +62,7 @@ public:
     explicit SimpleGraph(uint32_t n);
 
     uint32_t getNoVertices() const override ;
+    //TODO: remove because it is unused? or better: call these functions from the estimator!
     uint32_t getNoEdges() const override ;
     uint32_t getNoDistinctEdges() const override ;
     uint32_t getNoLabels() const override ;

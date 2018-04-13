@@ -41,23 +41,12 @@ void SimpleEvaluator::prepare() {
     for(int i = 0; i < labels; i++){
         costs.insert(std::pair<std::string, int>(std::to_string(i),0));
     }
-
-    //TODO: this is duplicated code
-    for(int i = 0; i < noVertices; i++) {
-        for(auto labelTarget : graph->adj[i]) {
-            total_tuples[labelTarget.first]++;
-            costs[std::to_string(labelTarget.first)]++;
-        }
-    }
-    costs["1"]+=1000;
-    costs["2"]+=1000;
-
 }
 
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
-
+    //TODO: remove this function? or if it is used, get the total number of edges from somewhere or something
     cardStat stats {};
-
+    /*
     for(int source = 0; source < g->getNoVertices(); source++) {
         if(!g->adj[source].empty()) stats.noOut++;
     }
@@ -67,7 +56,7 @@ cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     for(int target = 0; target < g->getNoVertices(); target++) {
         if(!g->reverse_adj[target].empty()) stats.noIn++;
     }
-
+    */
     return stats;
 }
 
@@ -76,7 +65,8 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
     auto out = std::make_shared<SimpleGraph>(in->getNoVertices());
     out->setNoLabels(in->getNoLabels());
 
-    if(!inverse) {
+    //TODO: implement projection
+    /*if(!inverse) {
         // going forward
         for(uint32_t source = 0; source < in->getNoVertices(); source++) {
             for (auto labelTarget : in->adj[source]) {
@@ -100,7 +90,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
                     out->addEdge(source, target, label);
             }
         }
-    }
+    }*/
 
     return out;
 }
@@ -109,11 +99,13 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
 
     auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
     out->setNoLabels(1);
+    //TODO: implement join
     /*
      * check for every vertex v of the left graph
      * get ALL THE EDGES of the vertices on the right side where v goes to
      *
      */
+    /*
     for(uint32_t leftSource = 0; leftSource < left->getNoVertices(); leftSource++) {
         for (auto labelTarget : left->adj[leftSource]) {
 
@@ -126,7 +118,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
 
             }
         }
-    }
+    }*/
 
     return out;
 }
