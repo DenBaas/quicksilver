@@ -5,6 +5,7 @@
 #include "SimpleGraph.h"
 #include "SimpleEstimator.h"
 #include <chrono>
+#include "math.h"
 
 uint32_t noLabels;
 double correction;
@@ -13,6 +14,7 @@ constexpr int WIDTH = 10;
 
 std::regex inverseLabel (R"((\d+)\-)");
 std::regex directLabel (R"((\d+)\+)");
+
 
 SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
@@ -29,59 +31,36 @@ SimpleEstimator::SimpleEstimator(std::shared_ptr<SimpleGraph> &g){
 
 void SimpleEstimator::prepare() {
     // do your prep here
-    uint32_t* previous_tuples_out = new uint32_t[noLabels] {};
-    uint32_t* previous_tuples_in = new uint32_t[noLabels] {};
-
-    uint32_t noVertices = graph->getNoVertices();
-
-    int tracker = 0;
-    uint32_t distinct_out = 0;
-    uint32_t distinct_in = 0;
-    uint32_t intersect = 0;
-
-    for(int i = 0; i < noVertices; i++) {
-
-        if(i > noVertices/10.0 * (tracker + 1)) {
-            tracker++;
-        }
-
-        if (!graph->adj[i].empty()) {
-            distinct_out++;
-        }
-        if (!graph->reverse_adj[i].empty()) {
-            distinct_in++;
-        }
-
-        if (!graph->adj[i].empty() && !graph->reverse_adj[i].empty()) {
-            intersect++;
-        }
-
-        for (auto labelTarget : graph->adj[i]) {
-            total_tuples_out[labelTarget.first]++;
-        }
-
-        for (auto labelTarget : graph->reverse_adj[i]) {
-            total_tuples_in[labelTarget.first]++;
-        }
-
-        for (int j = 0; j < noLabels; j++) {
-            if (total_tuples_out[j] != previous_tuples_out[j]) {
-                distinct_tuples_out[j]++;
-                previous_tuples_out[j] = total_tuples_out[j];
+    noVertices = graph->getNoVertices();
+    int totalIn = 0;
+    int totalOut = 0;
+    for(int i = 0; i < noLabels; ++i){
+        int distinctOut = 0;
+        int distinctIn = 0;
+        int total = 0;
+        uint32_t lastIdIn = -1;
+        uint32_t lastIdOut = -1;
+        for(auto it = graph->edges[i].begin(); it != graph->edges[i].end(); ++it){
+            if(it->second != lastIdIn){
+                distinctIn++;
+                lastIdIn = it->second;
             }
-
-            if (total_tuples_in[j] != previous_tuples_in[j]) {
-                distinct_tuples_in[j]++;
-                previous_tuples_in[j] = total_tuples_in[j];
+            if(it->first != lastIdOut){
+                distinctOut++;
+                lastIdOut = it->first;
             }
+            total++;
         }
+        //TODO: totals are the same I guess?
+        total_tuples_in[i] = total;
+        total_tuples_out[i] = total;
+        distinct_tuples_in[i] = distinctIn;
+        distinct_tuples_out[i] = distinctOut;
+        totalIn += distinctIn;
+        totalOut += distinctOut;
     }
-
-    std::cout << "intersect: " << intersect << std::endl;
-    correction = (double)distinct_out/distinct_in;
-
-    delete[] previous_tuples_out;
-    delete[] previous_tuples_in;
+    //TODO: make this available per label or something?
+    correction = (double)totalOut/totalIn;
 }
 
 cardStat SimpleEstimator::estimate(RPQTree *q) {

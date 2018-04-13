@@ -100,21 +100,7 @@ void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
 
     //uint32_t size1 = sizeof(std::pair<uint32_t, uint32_t>); //= 8
     //uint32_t size2 = sizeof(std::pair<uint32_t, uint32_t>*);//= 4
-
-    //update stats
     noEdges[edgeLabel]++;
-    //forward
-    /*auto itBeginForward = edges[edgeLabel].begin();
-    std::pair<uint32_t,uint32_t> newEdgeForward(from, to);
-    auto itToInsertForward = std::lower_bound(itBeginForward, edges[edgeLabel].end(), newEdgeForward, sortEdgeForward);
-    edges[edgeLabel].insert(itToInsertForward, newEdgeForward);
-    uint32_t size3 = sizeof(edges[edgeLabel][0]);
-    //backward
-    auto itBeginBackward = reversedIndexes[edgeLabel].begin();
-    std::pair<uint32_t, uint32_t> newEdgeBackward(from, to);
-    auto itToInsertBackward = std::lower_bound(itBeginBackward, reversedIndexes[edgeLabel].end(), newEdgeBackward, sortEdgeBackward);
-    reversedIndexes[edgeLabel].insert(itToInsertBackward, newEdgeBackward);*/
-
     edges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
     reversedEdges[edgeLabel].push_front(&edges[edgeLabel].front());
 }

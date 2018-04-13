@@ -35,7 +35,6 @@ public:
      * TODO: add this to the report: https://stackoverflow.com/questions/2209224/vector-vs-list-in-stl#2209564
      * TODO: the pair is 8 bytes and the pointer to the pair only 4 bytes.
      *
-     * TODO: forward list?
      */
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> edges;
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>*>> reversedIndexes;
@@ -50,7 +49,7 @@ protected:
 
 public:
 
-    /*
+    /* TODO: create a function that sorts the edges
      * TODO: extract number of edges
      * TODO: what are distinct edges? (never used)
      *
