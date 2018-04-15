@@ -22,8 +22,7 @@ void SimpleGraph::setNoVertices(uint32_t n) {
 }
 
 uint32_t SimpleGraph::getNoEdges() const {
-    //TODO: move the code from estimator to here
-    return 0;
+    return totalEdges;
 }
 
 // sort on the second item in the pair, then on the first (ascending order)
@@ -76,6 +75,7 @@ void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
     //uint32_t size1 = sizeof(std::pair<uint32_t, uint32_t>); //= 8
     //uint32_t size2 = sizeof(std::pair<uint32_t, uint32_t>*);//= 4
     noEdges[edgeLabel]++;
+    totalEdges++;
     edges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
     reversedEdges[edgeLabel].push_front(&edges[edgeLabel].front());
 }
