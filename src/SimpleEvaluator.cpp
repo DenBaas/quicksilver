@@ -148,7 +148,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::project(label, inverse, graph);
     }
 
-    if(q->isConcat()) {
+    /* if(q->isConcat()) {
 
         // evaluate the children
         bool decision = query_order[0];
@@ -168,6 +168,17 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
             // join left with right
             return SimpleEvaluator::join(leftGraph, rightGraph);
         }
+    } */
+
+    if(q->isConcat()) {
+
+        // evaluate the children
+        auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
+        auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
+
+        // join left with right
+        return SimpleEvaluator::join(leftGraph, rightGraph);
+
     }
 
     return nullptr;
@@ -303,6 +314,7 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
 cardStat SimpleEvaluator::evaluate(RPQTree *query) {
     //bestPlan.first.clear();
     //bestPlan.second = imax;
+/*
     planQuery(query);
     std::vector<std::string> labelsAsInts{};
     for(uint32_t i: query_labels){
@@ -312,6 +324,7 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
     auto plan = findBestPlan(input);
     query_labels.clear();
     return cardStat{1,1,1};
+*/
     /*
     uint32_t size_query[query_labels.size() - 1];
     for(int i = 0; i < query_labels.size() - 1; i++) {
@@ -324,7 +337,8 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
         }
     }
     query_order.push_back(true);
+*/
 
     auto res = evaluate_aux(query);
-    return SimpleEvaluator::computeStats(res);*/
+    return SimpleEvaluator::computeStats(res);
 }

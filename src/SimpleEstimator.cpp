@@ -40,14 +40,16 @@ void SimpleEstimator::prepare() {
         int total = 0;
         uint32_t lastIdIn = -1;
         uint32_t lastIdOut = -1;
-        for(auto it = graph->edges[i].begin(); it != graph->edges[i].end(); ++it){
-            if(it->second != lastIdIn){
+        for(auto it = graph->edges[i].begin(); it != graph->edges[i].end(); ++it) {
+            if (it->second != lastIdIn) {
                 distinctIn++;
                 lastIdIn = it->second;
             }
-            if(it->first != lastIdOut){
+        }
+        for(auto* re : graph->reversedEdges[i]) {
+            if(re->first != lastIdOut){
                 distinctOut++;
-                lastIdOut = it->first;
+                lastIdOut = re->first;
             }
             total++;
         }
@@ -61,6 +63,18 @@ void SimpleEstimator::prepare() {
     }
     //TODO: make this available per label or something?
     correction = (double)totalOut/totalIn;
+
+    /*
+    std::cout << "Distinct in:" << std::endl;
+    for (int i = 0; i < noLabels; i++) {
+        std::cout << "Label " << i << ": " << distinct_tuples_in[i] << std::endl;
+    }
+
+    std::cout << "Distinct out:" << std::endl;
+    for (int i = 0; i < noLabels; i++) {
+        std::cout << "Label " << i << ": " << distinct_tuples_out[i] << std::endl;
+    }
+    */
 }
 
 cardStat SimpleEstimator::estimate(RPQTree *q) {
