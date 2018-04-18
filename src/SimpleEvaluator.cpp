@@ -50,15 +50,16 @@ cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     stats.noPaths = g->totalEdges;
     for(int i = 0; i < g->getNoLabels(); i++){
         auto it = g->edges[i].begin();
-        auto source = -1;
+        auto sourceStart = -1;
+        auto sourceEnd = -1;
         auto end = -1;
         while(it != g->edges[i].end()){
-            if(source != it->first){
-                source = it->first;
+            if(sourceStart != it->first){
+                sourceStart = it->first;
                 stats.noOut++;
             }
-            if(source != it->second){
-                source = it->second;
+            if(sourceEnd != it->second){
+                sourceEnd = it->second;
                 stats.noIn++;
             }
             it++;
@@ -108,7 +109,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
                 if(leftIt->second < rightIt->first){
                     leftIt++;
                 }
-                else if( rightIt->first < leftIt->second){
+                else if(leftIt->second > rightIt->first){
                     rightIt++;
                 }
                 else if(rightIt-> first == leftIt->second){
@@ -118,14 +119,14 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
                         if(leftIt->second != node)
                             break;
                         out->addEdge(leftIt->first, leftIt->second, labelLeft);
-                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, true);
+                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, false);
                         leftIt++;
                     }
                     while(rightIt != rightEnd){
                         if(rightIt->first != node)
                             break;
                         out->addEdge(rightIt->first, rightIt->second, labelRight);
-                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, true);
+                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, false);
                         rightIt++;
                     }
 
@@ -135,6 +136,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
     }
     for(int i = 0; i < out->getNoLabels(); i++){
         out->sortReversedEdges(i);
+        //remove duplicates?
     }
     return out;
 }
