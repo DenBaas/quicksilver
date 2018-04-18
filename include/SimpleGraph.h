@@ -13,6 +13,7 @@
 #include <fstream>
 #include "Graph.h"
 #include "forward_list"
+#include <iterator>
 
 class SimpleGraph : public Graph {
 public:
@@ -21,7 +22,7 @@ public:
     //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> adj;
     //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> reverse_adj; // vertex adjacency list
 
-
+    void sortReversedEdges(int label);
     //NEW DATASTRUCTURE
     /*
      *
@@ -41,13 +42,18 @@ public:
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>*>> reversedIndexes;
     //std::vector<std::vector<std::pair<uint32_t, uint32_t>>> reversedIndexes;
     std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> edges;
-    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>*>> reversedEdges;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> reversedEdges;
     std::vector<int> noEdges;
+
+    std::vector<int> labelsToJoinForward;
+    uint32_t totalEdges = 0;
+private:
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>::iterator> endOfForwardEdges;
+    std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>::iterator> endOfBackwardEdges;
 
 protected:
     uint32_t V;
     uint32_t L;
-    uint32_t totalEdges = 0;
 
 public:
 
@@ -69,6 +75,7 @@ public:
     uint32_t getNoLabels() const override ;
 
     void addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) override ;
+    void addReverseEdge(uint32_t from, uint32_t to, uint32_t edgeLabel, bool pushBack);
     void readFromContiguousFile(const std::string &fileName) override ;
 
     //these will be removed

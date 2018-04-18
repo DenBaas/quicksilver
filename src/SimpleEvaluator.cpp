@@ -9,6 +9,7 @@
 #include <vector>
 #include <initializer_list>
 #include <sstream>
+#include <set>
 
 std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
@@ -36,7 +37,6 @@ void SimpleEvaluator::prepare() {
     if(est != nullptr) est->prepare();
 
     // prepare other things here.., if necessary
-    uint32_t noVertices = graph->getNoVertices();
     int labels = graph->getNoLabels();
     for(int i = 0; i < labels; i++){
         costs.insert(std::pair<std::string, int>(std::to_string(i),0));
@@ -46,6 +46,24 @@ void SimpleEvaluator::prepare() {
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     //TODO: remove this function? or if it is used, get the total number of edges from somewhere or something
     cardStat stats {};
+    //out= distinct vertices, paths = distinct edges = total edges, in = distinct vertices
+    stats.noPaths = g->totalEdges;
+    for(int i = 0; i < g->getNoLabels(); i++){
+        auto it = g->edges[i].begin();
+        auto source = -1;
+        auto end = -1;
+        while(it != g->edges[i].end()){
+            if(source != it->first){
+                source = it->first;
+                stats.noOut++;
+            }
+            if(source != it->second){
+                source = it->second;
+                stats.noIn++;
+            }
+            it++;
+        }
+    }
     /*
     for(int source = 0; source < g->getNoVertices(); source++) {
         if(!g->adj[source].empty()) stats.noOut++;
@@ -64,62 +82,60 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
 
     auto out = std::make_shared<SimpleGraph>(in->getNoVertices());
     out->setNoLabels(in->getNoLabels());
-
-    //TODO: implement projection
-    /*if(!inverse) {
-        // going forward
-        for(uint32_t source = 0; source < in->getNoVertices(); source++) {
-            for (auto labelTarget : in->adj[source]) {
-
-                auto label = labelTarget.first;
-                auto target = labelTarget.second;
-
-                if (label == projectLabel)
-                    out->addEdge(source, target, label);
-            }
-        }
-    } else {
-        // going backward
-        for(uint32_t source = 0; source < in->getNoVertices(); source++) {
-            for (auto labelTarget : in->reverse_adj[source]) {
-
-                auto label = labelTarget.first;
-                auto target = labelTarget.second;
-
-                if (label == projectLabel)
-                    out->addEdge(source, target, label);
-            }
-        }
-    }*/
-
+    out->labelsToJoinForward.push_back(projectLabel);
+    for(auto e: in->edges[projectLabel]){
+        out->addEdge(e.first, e.second, projectLabel);
+    }
+    for(auto e: in->reversedEdges[projectLabel]){
+        out->addReverseEdge(e.first, e.second, projectLabel, true);
+    }
     return out;
 }
 
 std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> &left, std::shared_ptr<SimpleGraph> &right) {
 
     auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
-    out->setNoLabels(1);
-    //TODO: implement join
-    /*
-     * check for every vertex v of the left graph
-     * get ALL THE EDGES of the vertices on the right side where v goes to
-     *
-     */
-    /*
-    for(uint32_t leftSource = 0; leftSource < left->getNoVertices(); leftSource++) {
-        for (auto labelTarget : left->adj[leftSource]) {
+    out->setNoLabels(std::max(left->getNoLabels(), right->getNoLabels()));
+    for(int labelLeft = 0; labelLeft < left->getNoLabels(); ++labelLeft){
+        for(int labelRight = 0; labelRight < right->getNoLabels(); ++labelRight) {
+            auto leftIt = left->edges[labelLeft].begin();
+            auto leftEnd = left->edges[labelLeft].end();
+            auto rightIt = right->reversedEdges[labelRight].begin();
+            auto rightEnd = right->reversedEdges[labelRight].end();
+            while(leftIt != leftEnd && rightIt != rightEnd){
+                auto l1 = leftIt->second;
+                auto l2 = rightIt->first;
+                if(leftIt->second < rightIt->first){
+                    leftIt++;
+                }
+                else if( rightIt->first < leftIt->second){
+                    rightIt++;
+                }
+                else if(rightIt-> first == leftIt->second){
+                    //join
+                    uint32_t node = leftIt->second;
+                    while(leftIt != leftEnd){
+                        if(leftIt->second != node)
+                            break;
+                        out->addEdge(leftIt->first, leftIt->second, labelLeft);
+                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, true);
+                        leftIt++;
+                    }
+                    while(rightIt != rightEnd){
+                        if(rightIt->first != node)
+                            break;
+                        out->addEdge(rightIt->first, rightIt->second, labelRight);
+                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, true);
+                        rightIt++;
+                    }
 
-            int leftTarget = labelTarget.second;
-            // try to join the left target with right source
-            for (auto rightLabelTarget : right->adj[leftTarget]) {
-
-                auto rightTarget = rightLabelTarget.second;
-                out->addEdge(leftSource, rightTarget, 0);
-
+                }
             }
         }
-    }*/
-
+    }
+    for(int i = 0; i < out->getNoLabels(); i++){
+        out->sortReversedEdges(i);
+    }
     return out;
 }
 

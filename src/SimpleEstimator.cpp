@@ -46,10 +46,10 @@ void SimpleEstimator::prepare() {
                 lastIdIn = it->second;
             }
         }
-        for(auto* re : graph->reversedEdges[i]) {
-            if(re->first != lastIdOut){
+        for(auto re : graph->reversedEdges[i]) {
+            if(re.first != lastIdOut){
                 distinctOut++;
-                lastIdOut = re->first;
+                lastIdOut = re.first;
             }
         }
         //TODO: totals are the same I guess?

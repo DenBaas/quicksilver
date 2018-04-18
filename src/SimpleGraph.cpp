@@ -10,8 +10,11 @@ SimpleGraph::SimpleGraph(uint32_t n)   {
 }
 
 bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
-bool sortEdgeBackward(std::pair<uint32_t,uint32_t>* i, std::pair<uint32_t,uint32_t>* j);
+bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
 
+void SimpleGraph::sortReversedEdges(int label) {
+    reversedEdges[label].sort(sortEdgeBackward);
+}
 
 uint32_t SimpleGraph::getNoVertices() const {
     return V;
@@ -23,13 +26,6 @@ void SimpleGraph::setNoVertices(uint32_t n) {
 
 uint32_t SimpleGraph::getNoEdges() const {
     return totalEdges;
-}
-
-// sort on the second item in the pair, then on the first (ascending order)
-bool sortPairs(const std::pair<uint32_t,uint32_t> &a, const std::pair<uint32_t,uint32_t> &b) {
-    if (a.second < b.second) return true;
-    if (a.second == b.second) return a.first < b.first;
-    return false;
 }
 
 uint32_t SimpleGraph::getNoDistinctEdges() const {
@@ -46,10 +42,11 @@ void SimpleGraph::setNoLabels(uint32_t noLabels) {
     //edges.resize(noLabels);
     edges.resize(noLabels);
     reversedEdges.resize(noLabels);
-    //reversedIndexes.resize(noLabels);
     noEdges.resize(noLabels);
     for(int i = 0; i < noLabels; i++){
         noEdges[i] = 0;
+        endOfForwardEdges.push_back(edges[i].end());
+        endOfBackwardEdges.push_back(edges[i].end());
     }
 }
 
@@ -60,8 +57,8 @@ bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t
     return i.second < j.second;
 }
 
-bool sortEdgeBackward(std::pair<uint32_t,uint32_t>* i, std::pair<uint32_t,uint32_t>* j){
-    return i->first < j->first;
+bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j){
+    return i.first < j.first;
 }
 
 /*
@@ -76,8 +73,30 @@ void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
     //uint32_t size2 = sizeof(std::pair<uint32_t, uint32_t>*);//= 4
     noEdges[edgeLabel]++;
     totalEdges++;
-    edges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
-    reversedEdges[edgeLabel].push_front(&edges[edgeLabel].front());
+    if(endOfForwardEdges[edgeLabel] != edges[edgeLabel].end()){
+        edges[edgeLabel].insert_after(endOfForwardEdges[edgeLabel], std::pair<uint32_t,uint32_t>(from, to));
+        endOfForwardEdges[edgeLabel]++;
+    }
+    else{
+        edges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
+        endOfForwardEdges[edgeLabel] = edges[edgeLabel].begin();
+    }
+}
+
+void SimpleGraph::addReverseEdge(uint32_t from, uint32_t to, uint32_t edgeLabel, bool pushBack) {
+    if(!pushBack)
+        reversedEdges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
+    else{
+        if(endOfBackwardEdges[edgeLabel] != edges[edgeLabel].end()){
+            reversedEdges[edgeLabel].insert_after(endOfBackwardEdges[edgeLabel], std::pair<uint32_t,uint32_t>(from, to));
+            endOfBackwardEdges[edgeLabel]++;
+        }
+        else{
+            reversedEdges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
+            endOfBackwardEdges[edgeLabel] = reversedEdges[edgeLabel].begin();
+        }
+    }
+
 }
 
 void SimpleGraph::readFromContiguousFile(const std::string &fileName) {
@@ -110,12 +129,13 @@ void SimpleGraph::readFromContiguousFile(const std::string &fileName) {
             uint32_t predicate = (uint32_t) std::stoul(matches[2]);
             uint32_t object = (uint32_t) std::stoul(matches[3]);
             addEdge(subject, object, predicate);
+            addReverseEdge(subject, object, predicate, false);
         }
     }
     //sort edges
     for(int i = 0; i < L; ++i){
         edges[i].sort(sortEdgeForward);
-        reversedEdges[i].sort(sortEdgeBackward);
+        sortReversedEdges(i);
     }
     auto time = double(clock()-begin)/CLOCKS_PER_SEC;
     graphFile.close();
