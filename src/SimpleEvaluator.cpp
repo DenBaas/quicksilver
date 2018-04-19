@@ -13,8 +13,6 @@
 
 std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
-int imax = std::numeric_limits<int>::max();
-//std::pair<std::vector<int>, int> bestPlan({},imax);
 int sid = 0;
 
 std::map<std::string, int> costs;
@@ -139,15 +137,15 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
                     while(leftIt != leftEnd){
                         if(leftIt->second != node)
                             break;
-                        out->addEdge(leftIt->first, leftIt->second, labelLeft);
-                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, false);
+                        out->addEdge(leftIt->first, leftIt->second, 0);
+                        out->addReverseEdge(leftIt->first, leftIt->second, 0, false);
                         leftIt++;
                     }
                     while(rightIt != rightEnd){
                         if(rightIt->first != node)
                             break;
-                        out->addEdge(rightIt->first, rightIt->second, labelRight);
-                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, false);
+                        out->addEdge(rightIt->first, rightIt->second, 0);
+                        out->addReverseEdge(rightIt->first, rightIt->second, 0, false);
                         rightIt++;
                     }
 
