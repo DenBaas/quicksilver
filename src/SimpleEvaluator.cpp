@@ -88,18 +88,18 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
      */
     if(inverse){
         for(auto e: in->edges[projectLabel]){
-            out->addEdge(e.second, e.first, projectLabel);
+            out->addEdge(e.second, e.first, 0);
         }
         for(auto e: in->reversedEdges[projectLabel]){
-            out->addReverseEdge(e.second, e.first, projectLabel, true);
+            out->addReverseEdge(e.second, e.first, 0, true);
         }
     }
     else{
         for(auto e: in->edges[projectLabel]){
-            out->addEdge(e.first, e.second, projectLabel);
+            out->addEdge(e.first, e.second, 0);
         }
         for(auto e: in->reversedEdges[projectLabel]){
-            out->addReverseEdge(e.first, e.second, projectLabel, true);
+            out->addReverseEdge(e.first, e.second, 0, true);
         }
     }
     return out;
@@ -112,50 +112,65 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
     /*
      * 1. compare each list per label from the left side to each list per label on the right side
      */
-    for(int labelLeft = 0; labelLeft < left->getNoLabels(); ++labelLeft){
-        for(int labelRight = 0; labelRight < right->getNoLabels(); ++labelRight) {
-            auto leftIt = left->edges[labelLeft].begin();
-            auto leftEnd = left->edges[labelLeft].end();
-            auto rightIt = right->reversedEdges[labelRight].begin();
-            auto rightEnd = right->reversedEdges[labelRight].end();
-            while(leftIt != leftEnd && rightIt != rightEnd){
-                if(leftIt->second < rightIt->first){
-                    leftIt++;
-                }
-                else if(leftIt->second > rightIt->first){
-                    rightIt++;
-                }
-                //we have a match, so we add the edges
-                else if(rightIt-> first == leftIt->second){
-                    //it might happen that there are multiple edges with the same endpoints (left) and beginpoints (right). add all of them
-                    //as long the list is not finished or we hit the next edge
-                    uint32_t node = leftIt->second;
-                    while(leftIt != leftEnd){
-                        if(leftIt->second != node)
-                            break;
-                        //add edge twice, forwards and backwards
-                        out->addEdge(leftIt->first, leftIt->second, labelLeft);
-                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, false);
-                        leftIt++;
-                    }
-                    //same for right
-                    while(rightIt != rightEnd){
-                        if(rightIt->first != node)
-                            break;
-                        out->addEdge(rightIt->first, rightIt->second, labelRight);
-                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, false);
-                        rightIt++;
-                    }
+    uint32_t traceLabel = 0;
 
+    auto leftIt = left->edges[traceLabel].begin();
+    auto leftEnd = left->edges[traceLabel].end();
+    auto rightIt = right->reversedEdges[traceLabel].begin();
+    auto rightEnd = right->reversedEdges[traceLabel].end();
+    while(leftIt != leftEnd && rightIt != rightEnd){
+        // std::cout << "left: " << leftIt->second << ". right: " << rightIt -> first << std::endl;
+        // std::cout << std::endl;
+
+        if(leftIt->second < rightIt->first){
+            leftIt++;
+        }
+        else if(leftIt->second > rightIt->first){
+            rightIt++;
+        }
+            //we have a match, so we add the edges
+        else if(rightIt-> first == leftIt->second){
+            //it might happen that there are multiple edges with the same endpoints (left) and beginpoints (right). add all of them
+            //as long the list is not finished or we hit the next edge
+            uint32_t node = leftIt->second;
+            while(leftIt != leftEnd){
+
+                //// HIER GAAT HET FOUT, LEFTSOURCE met RIGHTTARGET aan graph toevoegen
+                if(leftIt->second != node)
+                    break;
+
+                auto tempIt = rightIt;
+                while(tempIt != rightEnd) {
+                    if(tempIt->first != node)
+                        break;
+                    //add edge twice, forwards and backwards
+                    out->addEdge(leftIt->first, rightIt->second, traceLabel);
+                    out->addReverseEdge(leftIt->first, rightIt->second, traceLabel, false);
+                    tempIt++;
                 }
+
+                leftIt++;
             }
+            /*
+            //same for right
+            while(rightIt != rightEnd){
+                if(rightIt->first != node)
+                    break;
+                out->addEdge(rightIt->first, rightIt->second, traceLabel);
+                out->addReverseEdge(rightIt->first, rightIt->second, traceLabel, false);
+                rightIt++;
+            } */
+
         }
     }
+
     //unfortunately we need to sort everything again
-    for(int i = 0; i < out->getNoLabels(); i++){
-        out->sortEdgesOnLabel(i);
-        //remove duplicates?
-    }
+    out->sortEdgesOnLabel(traceLabel);
+
+    std::cout << out->getNoEdges() << std::endl;
+
+    //remove duplicates?
+
     return out;
 }
 
