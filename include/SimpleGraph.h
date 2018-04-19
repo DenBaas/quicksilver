@@ -21,7 +21,7 @@ public:
     //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> adj;
     //std::vector<std::vector<std::pair<uint32_t,uint32_t>>> reverse_adj; // vertex adjacency list
 
-    void sortReversedEdges(int label);
+    void sortEdgesOnLabel(int label);
     //NEW DATASTRUCTURE
     /*
      *

@@ -12,7 +12,7 @@ SimpleGraph::SimpleGraph(uint32_t n)   {
 bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
 bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j);
 
-void SimpleGraph::sortReversedEdges(int label) {
+void SimpleGraph::sortEdgesOnLabel(int label) {
     edges[label].sort(sortEdgeForward);
     reversedEdges[label].sort(sortEdgeBackward);
 }
@@ -84,6 +84,7 @@ void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
     }
 }
 
+//false means: add in front of list
 void SimpleGraph::addReverseEdge(uint32_t from, uint32_t to, uint32_t edgeLabel, bool pushBack) {
     if(!pushBack)
         reversedEdges[edgeLabel].push_front(std::pair<uint32_t,uint32_t>(from, to));
@@ -136,7 +137,7 @@ void SimpleGraph::readFromContiguousFile(const std::string &fileName) {
     //sort edges
     for(int i = 0; i < L; ++i){
         //edges[i].sort(sortEdgeForward);
-        sortReversedEdges(i);
+        sortEdgesOnLabel(i);
     }
     auto time = double(clock()-begin)/CLOCKS_PER_SEC;
     graphFile.close();
