@@ -42,20 +42,6 @@ void SimpleEvaluator::prepare() {
     }
 }
 
-struct iterator_hash {
-    template<class Iterator>
-    size_t operator()(Iterator it) const {
-        using value_type = typename std::decay< decltype(*it) >::type;
-        return std::hash<value_type>{}( *it );
-    }
-};
-struct iterator_element_equals {
-    template<class Iterator>
-    size_t operator()(Iterator lhs, Iterator rhs) const {
-        return *rhs == *lhs;
-    }
-};
-
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     //TODO: remove this function? or if it is used, get the total number of edges from somewhere or something
     cardStat stats {};
@@ -103,7 +89,6 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
 
     auto out = std::make_shared<SimpleGraph>(in->getNoVertices());
     out->setNoLabels(in->getNoLabels());
-    out->labelsToJoinForward.push_back(projectLabel);
     for(auto e: in->edges[projectLabel]){
         out->addEdge(e.first, e.second, projectLabel);
     }
@@ -138,15 +123,15 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
                     while(leftIt != leftEnd){
                         if(leftIt->second != node)
                             break;
-                        out->addEdge(leftIt->first, leftIt->second, 0);
-                        out->addReverseEdge(leftIt->first, leftIt->second, 0, false);
+                        out->addEdge(leftIt->first, leftIt->second, labelLeft);
+                        out->addReverseEdge(leftIt->first, leftIt->second, labelLeft, false);
                         leftIt++;
                     }
                     while(rightIt != rightEnd){
                         if(rightIt->first != node)
                             break;
-                        out->addEdge(rightIt->first, rightIt->second, 0);
-                        out->addReverseEdge(rightIt->first, rightIt->second, 0, false);
+                        out->addEdge(rightIt->first, rightIt->second, labelRight);
+                        out->addReverseEdge(rightIt->first, rightIt->second, labelRight, false);
                         rightIt++;
                     }
 

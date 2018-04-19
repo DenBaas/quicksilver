@@ -44,7 +44,6 @@ public:
     std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>> reversedEdges;
     std::vector<int> noEdges;
 
-    std::vector<int> labelsToJoinForward;
     uint32_t totalEdges = 0;
 private:
     std::vector<std::forward_list<std::pair<uint32_t, uint32_t>>::iterator> endOfForwardEdges;
