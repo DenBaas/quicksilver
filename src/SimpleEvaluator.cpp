@@ -13,6 +13,7 @@
 
 std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
+int imax = std::numeric_limits<int>::max();
 int sid = 0;
 
 std::map<std::string, int> costs;
