@@ -43,27 +43,48 @@ void SimpleEvaluator::prepare() {
     }
 }
 
+struct iterator_hash {
+    template<class Iterator>
+    size_t operator()(Iterator it) const {
+        using value_type = typename std::decay< decltype(*it) >::type;
+        return std::hash<value_type>{}( *it );
+    }
+};
+struct iterator_element_equals {
+    template<class Iterator>
+    size_t operator()(Iterator lhs, Iterator rhs) const {
+        return *rhs == *lhs;
+    }
+};
+
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     //TODO: remove this function? or if it is used, get the total number of edges from somewhere or something
     cardStat stats {};
     //out= distinct vertices, paths = distinct edges = total edges, in = distinct vertices
     stats.noPaths = g->totalEdges;
+    std::vector<uint32_t> outs;
+    std::vector<uint32_t> ins;
+    outs.resize(g->getNoVertices());
+    ins.resize(g->getNoVertices());
     for(int i = 0; i < g->getNoLabels(); i++){
         auto it = g->edges[i].begin();
-        auto sourceStart = -1;
-        auto sourceEnd = -1;
-        auto end = -1;
         while(it != g->edges[i].end()){
-            if(sourceStart != it->first){
+            outs[it->first] = 1;
+            ins[it->second] = 1;
+            /*if(sourceStart != it->first){
                 sourceStart = it->first;
                 stats.noOut++;
             }
             if(sourceEnd != it->second){
                 sourceEnd = it->second;
                 stats.noIn++;
-            }
+            }*/
             it++;
         }
+    }
+    for(int i = 0; i < ins.size(); ++i){
+        stats.noOut += outs[i];
+        stats.noIn += ins[i];
     }
     /*
     for(int source = 0; source < g->getNoVertices(); source++) {
