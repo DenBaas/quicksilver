@@ -70,10 +70,16 @@ void SimpleGraph::setNoLabels(uint32_t noLabels) {
  * Used on sorting
  */
 bool sortEdgeForward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j){
+    if(i.second == j.second){
+        return i.first < j.first;
+    }
     return i.second < j.second;
 }
 
 bool sortEdgeBackward(std::pair<uint32_t,uint32_t> i, std::pair<uint32_t,uint32_t> j){
+    if(i.first == j.first){
+        return i.second < j.second;
+    }
     return i.first < j.first;
 }
 
