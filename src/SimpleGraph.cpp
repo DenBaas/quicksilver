@@ -33,17 +33,18 @@ uint32_t SimpleGraph::getNoDistinctEdges() const {
     //TODO: move the code from estimator to here
 
     uint32_t sum = 0;
-    uint32_t prevTarget = 0;
-    uint32_t prevSource = 0;l
-    bool first = true;
+    uint32_t prevTarget = -1;
+    uint32_t prevSource = -1;
+    bool sorted = true;
 
     for (auto ed : edges[0]) {
-        if (first || !(prevTarget == ed.second && prevSource == ed.first)) {
-            first = false;
+        if (!(prevTarget == ed.second && prevSource == ed.first)) {
             sum++;
             prevTarget = ed.second;
             prevSource = ed.first;
-
+        }
+        else{
+            sorted = prevTarget <= ed.second && prevSource <= ed.first;
         }
     }
     return sum;
@@ -58,9 +59,7 @@ void SimpleGraph::setNoLabels(uint32_t noLabels) {
     //edges.resize(noLabels);
     edges.resize(noLabels);
     reversedEdges.resize(noLabels);
-    noEdges.resize(noLabels);
     for(int i = 0; i < noLabels; i++){
-        noEdges[i] = 0;
         endOfForwardEdges.push_back(edges[i].end());
         endOfBackwardEdges.push_back(edges[i].end());
     }
@@ -87,7 +86,6 @@ void SimpleGraph::addEdge(uint32_t from, uint32_t to, uint32_t edgeLabel) {
 
     //uint32_t size1 = sizeof(std::pair<uint32_t, uint32_t>); //= 8
     //uint32_t size2 = sizeof(std::pair<uint32_t, uint32_t>*);//= 4
-    noEdges[edgeLabel]++;
     totalEdges++;
     if(endOfForwardEdges[edgeLabel] != edges[edgeLabel].end()){
         edges[edgeLabel].insert_after(endOfForwardEdges[edgeLabel], std::pair<uint32_t,uint32_t>(from, to));

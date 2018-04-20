@@ -53,7 +53,6 @@ void SimpleEstimator::prepare() {
             }
         }
         //TODO: totals are the same I guess?
-        total_tuples_in[i] = total_tuples_out[i] = graph->noEdges[i];
         distinct_tuples_in[i] = distinctIn;
         distinct_tuples_out[i] = distinctOut;
         totalIn += distinctIn;
