@@ -34,7 +34,7 @@ uint32_t SimpleGraph::getNoDistinctEdges() const {
 
     uint32_t sum = 0;
     uint32_t prevTarget = 0;
-    uint32_t prevSource = 0;
+    uint32_t prevSource = 0;l
     bool first = true;
 
     for (auto ed : edges[0]) {

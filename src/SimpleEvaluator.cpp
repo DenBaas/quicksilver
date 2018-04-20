@@ -45,7 +45,7 @@ void SimpleEvaluator::prepare() {
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     cardStat stats {};
     //nopaths is the total amount of edges
-    stats.noPaths = g->getNoEdges();
+    stats.noPaths = g->getNoDistinctEdges();
     //these are used to calculate the distinct vertices
     //1 means that the vertice is used, 0 means it is not used
     std::vector<uint32_t> outs;
