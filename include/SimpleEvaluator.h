@@ -15,12 +15,15 @@
 #include "Graph.h"
 #include "SimpleEstimator.h"
 
+
+
 class SimpleEvaluator : public Evaluator {
 
     std::shared_ptr<SimpleGraph> graph;
     std::shared_ptr<SimpleEstimator> est;
     uint32_t* total_tuples;
-    std::vector<std::pair<uint32_t, bool>> query_labels;
+    std::vector<std::pair<uint32_t, cardStat>> query_labels;
+    std::vector<bool> inversed_list;
     std::vector<bool> query_order;
 
 public:
@@ -31,7 +34,7 @@ public:
     void prepare() override ;
     cardStat evaluate(RPQTree *query) override ;
     void planQuery(RPQTree *q);
-    void findBestPlan(RPQTree *q);
+    std::vector<uint32_t> findBestPlan(std::vector<std::pair<uint32_t, cardStat>> query);
 
     void attachEstimator(std::shared_ptr<SimpleEstimator> &e);
 

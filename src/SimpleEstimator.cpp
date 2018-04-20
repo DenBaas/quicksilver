@@ -45,6 +45,7 @@ void SimpleEstimator::prepare() {
                 distinctIn++;
                 lastIdIn = it->second;
             }
+            total++;
         }
         for(auto re : graph->reversedEdges[i]) {
             if(re.first != lastIdOut){
@@ -55,28 +56,19 @@ void SimpleEstimator::prepare() {
         //TODO: totals are the same I guess?
         distinct_tuples_in[i] = distinctIn;
         distinct_tuples_out[i] = distinctOut;
+        total_tuples_in[i] = total;
+        total_tuples_out[i] = total;
         totalIn += distinctIn;
         totalOut += distinctOut;
     }
     //TODO: make this available per label or something?
     correction = (double)totalOut/totalIn;
-
-    /*
-    std::cout << "Distinct in:" << std::endl;
-    for (int i = 0; i < noLabels; i++) {
-        std::cout << "Label " << i << ": " << distinct_tuples_in[i] << std::endl;
-    }
-
-    std::cout << "Distinct out:" << std::endl;
-    for (int i = 0; i < noLabels; i++) {
-        std::cout << "Label " << i << ": " << distinct_tuples_out[i] << std::endl;
-    }
-    */
+    std::cout << "correction: " << correction << std::endl;
 }
 
 cardStat SimpleEstimator::estimate(RPQTree *q) {
 
-    // perform your estimation here
+    // Estimation
 
     std::smatch matches;
     uint32_t label;
@@ -104,7 +96,10 @@ cardStat SimpleEstimator::estimate(RPQTree *q) {
         uint32_t vry = leftGraph.noOut;
         uint32_t vsy = rightGraph.noIn;
         uint32_t trts = leftGraph.noPaths * rightGraph.noPaths;
+
         uint32_t paths = (uint32_t)(std::min(trts/vsy,trts/vry) * correction);
+        vry = std::min(vry, paths);
+        vsy = std::min(vsy, paths);
 
         return cardStat{vry, paths, vsy};
     }

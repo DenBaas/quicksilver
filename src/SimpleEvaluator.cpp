@@ -11,6 +11,16 @@
 #include <sstream>
 #include <set>
 
+struct parseQuery {
+    std::string s;
+    std::string path;
+    std::string t;
+
+    void print() {
+        std::cout << s << ", " << path << ", " << t << std::endl;
+    }
+};
+
 std::regex dirLabel (R"((\d+)\+)");
 std::regex invLabel (R"((\d+)\-)");
 int imax = std::numeric_limits<int>::max();
@@ -33,7 +43,9 @@ void SimpleEvaluator::attachEstimator(std::shared_ptr<SimpleEstimator> &e) {
 void SimpleEvaluator::prepare() {
 
     // if attached, prepare the estimator
-    if(est != nullptr) est->prepare();
+    if(est != nullptr) {
+        est->prepare();
+    }
 
     // prepare other things here.., if necessary
     int labels = graph->getNoLabels();
@@ -171,6 +183,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::project(label, inverse, graph);
     }
 
+/*
     //old code
     if(q->isConcat()) {
 
@@ -193,7 +206,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
             return SimpleEvaluator::join(leftGraph, rightGraph);
         }
     }
-/*
+*/
     if(q->isConcat()) {
 
         // evaluate the children
@@ -203,7 +216,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         // join left with right
         return SimpleEvaluator::join(leftGraph, rightGraph);
     }
-*/
+
 
 
     return nullptr;
@@ -223,12 +236,14 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
 
         if(std::regex_search(q->data, matches, dirLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            inverse = false;
-            query_labels.push_back(std::pair<uint32_t,bool>(label, inverse));
+            cardStat cStat = cardStat{est->distinct_tuples_out[label], est->total_tuples_in[label], est->distinct_tuples_in[label]};
+            query_labels.push_back(std::pair<uint32_t,cardStat>(label, cStat));
+            inversed_list.push_back(false);
         } else if(std::regex_search(q->data, matches, invLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            inverse = true;
-            query_labels.push_back(std::pair<uint32_t,bool>(label, inverse));
+            cardStat cStat = cardStat{est->distinct_tuples_in[label], est->total_tuples_in[label], est->distinct_tuples_out[label]};
+            query_labels.push_back(std::pair<uint32_t,cardStat>(label, cStat));
+            inversed_list.push_back(true);
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
         }
@@ -241,30 +256,93 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
     }
 }
 
-void SimpleEvaluator::findBestPlan(RPQTree *q) {
-    int i = 0;
+std::vector<uint32_t> SimpleEvaluator::findBestPlan(std::vector<std::pair<uint32_t, cardStat>> query) {
+    cardStat stat {};
+    uint32_t nPaths = -1;
+    uint32_t tracker;
+    if(query.size() == 1) {
+        return std::vector<uint32_t> (0);
+    } else {
+        for (int i = 1; i < query.size(); i++) {
+            uint32_t vry = query[i - 1].second.noOut;
+            uint32_t vsy = query[i].second.noIn;
+            uint32_t trts = query[i - 1].second.noPaths * query[i].second.noPaths;
 
+            uint32_t paths = (uint32_t) (std::min(trts / vsy, trts / vry)); // * correction
+            vry = std::min(vry, paths);
+            vsy = std::min(vsy, paths);
+
+            if (nPaths == -1) {
+                stat = cardStat{vry, paths, vsy};
+                nPaths = paths;
+                tracker = i;
+            } else if (paths < nPaths) {
+                stat = cardStat{vry, paths, vsy};
+                nPaths = paths;
+                tracker = i;
+            }
+        }
+
+        std::vector<std::pair<uint32_t, cardStat>> subquery = query;
+        subquery.erase(subquery.begin()+ tracker - 1);
+        subquery.at(tracker - 1).second = stat;
+        std::vector<uint32_t> trackQuery = findBestPlan(subquery);
+        trackQuery.push_back(tracker);
+
+        return trackQuery;
+
+    }
 }
 
 cardStat SimpleEvaluator::evaluate(RPQTree *query) {
+
     query_labels.clear();
+    inversed_list.clear();
     planQuery(query);
+    std::vector<uint32_t> bestPlan = findBestPlan(query_labels);
 
-    uint32_t size_query[query_labels.size() - 1];
-    for(int i = 0; i < query_labels.size() - 1; i++) {
-        size_query[i] = total_tuples[query_labels[i].first] * total_tuples[query_labels[i].first];
-    }
-    for(int i = 0; i < query_labels.size() - 2; i++) {
-        if(size_query[i] > size_query[i+1]) {
-            query_order.push_back(false);
+    std::vector<std::string> plan;
+    std::string symbol;
+    for(int i = 0; i < query_labels.size(); i++) {
+        if(inversed_list[i] == true) {
+            symbol = "-";
+        } else {
+            symbol = "+";
         }
+        plan.push_back(std::to_string(query_labels[i].first) + symbol);
     }
-    query_order.push_back(true);
 
+    while(bestPlan.size() > 0) {
+        uint32_t n = bestPlan.back();
+        bestPlan.pop_back();
+        std::string spot = plan[n];
+        plan[n - 1] = "(" + plan[n - 1] + "/" + spot + ")";
+        plan.erase(plan.begin() + n);
+    }
 
-    findBestPlan(query);
+    plan[0] = "*, " + plan[0] + ", *";
 
-    auto res = evaluate_aux(query);
+    // make a new query tree
+    std::regex edgePat (R"((.+),(.+),(.+))");
+
+    std::smatch matches;
+    parseQuery p;
+    std::string line = plan[0];
+
+    // match edge data
+    if(std::regex_search(line, matches, edgePat)) {
+        auto s = matches[1];
+        auto path = matches[2];
+        auto t = matches[3];
+
+        p = parseQuery{s, path, t};
+    }
+
+    RPQTree *pTree = RPQTree::strToTree(p.path);
+    std::cout << "\nParsed pTree: ";
+    pTree->print();
+
+    auto res = evaluate_aux(pTree);
     res->sortEdgesOnLabelBackward(0);
     res->sortEdgesOnLabelForward(0);
     return SimpleEvaluator::computeStats(res);
