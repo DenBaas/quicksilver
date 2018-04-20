@@ -38,7 +38,6 @@ uint32_t SimpleGraph::getNoDistinctEdges() const {
     bool sorted = true;
 
     for (auto ed : reversedEdges[0]) {
-        std::cout << "Edge: " << ed.first << " - " << ed.second << std::endl;
         if (!(prevTarget == ed.second && prevSource == ed.first)) {
             sum++;
             prevTarget = ed.second;

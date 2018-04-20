@@ -46,6 +46,28 @@ cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     cardStat stats {};
     //nopaths is the total amount of edges
     stats.noPaths = g->getNoDistinctEdges();
+    //these are used to calculate the distinct vertices
+    //1 means that the vertice is used, 0 means it is not used
+    std::vector<uint32_t> outs;
+    std::vector<uint32_t> ins;
+    outs.resize(g->getNoVertices());
+    ins.resize(g->getNoVertices());
+    for(int i = 0; i < g->getNoLabels(); i++){
+        auto it = g->edges[i].begin();
+        while(it != g->edges[i].end()){
+            outs[it->first] = 1;
+            ins[it->second] = 1;
+            it++;
+        }
+    }
+    for(int i = 0; i < ins.size(); ++i){
+        stats.noOut += outs[i];
+        stats.noIn += ins[i];
+    }
+
+    /*cardStat stats {};
+    //nopaths is the total amount of edges
+    stats.noPaths = g->getNoDistinctEdges();
     stats.noIn = stats.noOut = 0;
     uint32_t start = -1;
     uint32_t end = -1;
@@ -59,7 +81,7 @@ cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
             start = e.second;
             stats.noIn++;
         }
-    }
+    } */
     //these are used to calculate the distinct vertices
     //1 means that the vertice is used, 0 means it is not used
     /*std::vector<uint32_t> outs;
@@ -104,7 +126,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
         for(auto e: in->edges[projectLabel]){
             out->addEdge(e.second, e.first, 0);
         }
-        for(auto e: in->reversedEdges[projectLabel]){
+        for(auto e: in->edges[projectLabel]){
             out->addReverseEdge(e.second, e.first, 0, true);
         }
     }
