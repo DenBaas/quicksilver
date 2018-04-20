@@ -2,14 +2,11 @@
 // Created by Nikolay Yakovets on 2018-02-02.
 //
 
-#include <regex>
-#include "../include/SimpleEvaluator.h"
-#include "../include/SimpleEstimator.h"
-#include <iterator>
-#include <vector>
-#include <initializer_list>
-#include <sstream>
-#include <set>
+#include "SimpleEstimator.h"
+#include "SimpleEvaluator.h"
+
+std::regex dirLabel (R"((\d+)\+)");
+std::regex invLabel (R"((\d+)\-)");
 
 struct parseQuery {
     std::string s;
@@ -20,13 +17,6 @@ struct parseQuery {
         std::cout << s << ", " << path << ", " << t << std::endl;
     }
 };
-
-std::regex dirLabel (R"((\d+)\+)");
-std::regex invLabel (R"((\d+)\-)");
-int imax = std::numeric_limits<int>::max();
-int sid = 0;
-
-std::map<std::string, int> costs;
 
 SimpleEvaluator::SimpleEvaluator(std::shared_ptr<SimpleGraph> &g) {
 
@@ -43,39 +33,33 @@ void SimpleEvaluator::attachEstimator(std::shared_ptr<SimpleEstimator> &e) {
 void SimpleEvaluator::prepare() {
 
     // if attached, prepare the estimator
-    if(est != nullptr) {
-        est->prepare();
-    }
+    if(est != nullptr) est->prepare();
 
     // prepare other things here.., if necessary
-    int labels = graph->getNoLabels();
-    for(int i = 0; i < labels; i++){
-        costs.insert(std::pair<std::string, int>(std::to_string(i),0));
+    uint32_t noVertices = graph->getNoVertices();
+
+    for(int i = 0; i < noVertices; i++) {
+        for(auto labelTarget : graph->adj[i]) {
+            total_tuples[labelTarget.first]++;
+        }
     }
+
 }
 
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
+
     cardStat stats {};
-    //nopaths is the total amount of edges
+
+    for(int source = 0; source < g->getNoVertices(); source++) {
+        if(!g->adj[source].empty()) stats.noOut++;
+    }
+
     stats.noPaths = g->getNoDistinctEdges();
-    //these are used to calculate the distinct vertices
-    //1 means that the vertice is used, 0 means it is not used
-    std::vector<uint32_t> outs;
-    std::vector<uint32_t> ins;
-    outs.resize(g->getNoVertices());
-    ins.resize(g->getNoVertices());
-    for(int i = 0; i < g->getNoLabels(); i++){
-        auto it = g->edges[i].begin();
-        while(it != g->edges[i].end()){
-            outs[it->first] = 1;
-            ins[it->second] = 1;
-            it++;
-        }
+
+    for(int target = 0; target < g->getNoVertices(); target++) {
+        if(!g->reverse_adj[target].empty()) stats.noIn++;
     }
-    for(int i = 0; i < ins.size(); ++i){
-        stats.noOut += outs[i];
-        stats.noIn += ins[i];
-    }
+
     return stats;
 }
 
@@ -83,78 +67,55 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
 
     auto out = std::make_shared<SimpleGraph>(in->getNoVertices());
     out->setNoLabels(in->getNoLabels());
-    /*
-     * we add the edges backwards if the label is inverse.
-     */
-    if(inverse){
-        for(auto e: in->edges[projectLabel]){
-            out->addEdge(e.second, e.first, 0);
+
+    if(!inverse) {
+        // going forward
+        for(uint32_t source = 0; source < in->getNoVertices(); source++) {
+            for (auto labelTarget : in->adj[source]) {
+
+                auto label = labelTarget.first;
+                auto target = labelTarget.second;
+
+                if (label == projectLabel)
+                    out->addEdge(source, target, label);
+            }
         }
-        for(auto e: in->edges[projectLabel]){
-            out->addReverseEdge(e.second, e.first, 0, true);
-        }
-    }
-    else{
-        for(auto e: in->edges[projectLabel]){
-            out->addEdge(e.first, e.second, 0);
-        }
-        for(auto e: in->reversedEdges[projectLabel]){
-            out->addReverseEdge(e.first, e.second, 0, true);
-        }
-    }
-    return out;
-}
+    } else {
+        // going backward
+        for(uint32_t source = 0; source < in->getNoVertices(); source++) {
+            for (auto labelTarget : in->reverse_adj[source]) {
 
-std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> &left, std::shared_ptr<SimpleGraph> &right) {
-    auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
-    out->setNoLabels(std::max(left->getNoLabels(), right->getNoLabels()));
-    /*
-     * 1. compare each list per label from the left side to each list per label on the right side
-     */
-    uint32_t traceLabel = 0;
-    left->sortEdgesOnLabelForward(traceLabel);
-    right->sortEdgesOnLabelBackward(traceLabel);
+                auto label = labelTarget.first;
+                auto target = labelTarget.second;
 
-    auto leftIt = left->edges[traceLabel].begin();
-    auto leftEnd = left->edges[traceLabel].end();
-    auto rightIt = right->reversedEdges[traceLabel].begin();
-    auto rightEnd = right->reversedEdges[traceLabel].end();
-
-    while(leftIt != leftEnd && rightIt != rightEnd){
-
-        if(leftIt->second < rightIt->first){
-            leftIt++;
-        }
-        else if(leftIt->second > rightIt->first){
-            rightIt++;
-        }
-            //we have a match, so we add the edges
-        else if(rightIt-> first == leftIt->second){
-            //it might happen that there are multiple edges with the same endpoints (left) and beginpoints (right). add all of them
-            //as long the list is not finished or we hit the next edge
-
-            uint32_t node = leftIt->second;
-            while(leftIt != leftEnd){
-
-                if(leftIt->second != node)
-                    break;
-
-                auto tempIt = rightIt;
-                while(tempIt != rightEnd) {
-                    if(tempIt->first != node)
-                        break;
-
-                    //add edge twice, forwards and backwards
-                    out->addEdge(leftIt->first, tempIt->second, traceLabel);
-                    out->addReverseEdge(leftIt->first, tempIt->second, traceLabel, false);
-                    tempIt++;
-                }
-                leftIt++;
+                if (label == projectLabel)
+                    out->addEdge(source, target, label);
             }
         }
     }
 
-    //unfortunately we need to sort everything again
+    return out;
+}
+
+std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> &left, std::shared_ptr<SimpleGraph> &right) {
+
+    auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
+    out->setNoLabels(1);
+
+    for(uint32_t leftSource = 0; leftSource < left->getNoVertices(); leftSource++) {
+        for (auto labelTarget : left->adj[leftSource]) {
+
+            int leftTarget = labelTarget.second;
+            // try to join the left target with right source
+            for (auto rightLabelTarget : right->adj[leftTarget]) {
+
+                auto rightTarget = rightLabelTarget.second;
+                out->addEdge(leftSource, rightTarget, 0);
+
+            }
+        }
+    }
+
     return out;
 }
 
@@ -183,30 +144,6 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::project(label, inverse, graph);
     }
 
-/*
-    //old code
-    if(q->isConcat()) {
-
-        // evaluate the children
-        bool decision = query_order[0];
-        query_order.erase(query_order.begin());
-
-        if(decision) {
-            auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
-            auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
-
-            // join left with right
-            return SimpleEvaluator::join(leftGraph, rightGraph);
-
-        } else {
-            auto rightGraph = SimpleEvaluator::evaluate_aux(q->right);
-            auto leftGraph = SimpleEvaluator::evaluate_aux(q->left);
-
-            // join left with right
-            return SimpleEvaluator::join(leftGraph, rightGraph);
-        }
-    }
-*/
     if(q->isConcat()) {
 
         // evaluate the children
@@ -217,14 +154,8 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::join(leftGraph, rightGraph);
     }
 
-
-
     return nullptr;
 }
-
-/*
- * TODO: parse result to query
- */
 
 void SimpleEvaluator::planQuery(RPQTree* q) {
     if(q->isLeaf()) {
@@ -343,7 +274,5 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
     pTree->print();
 
     auto res = evaluate_aux(pTree);
-    res->sortEdgesOnLabelBackward(0);
-    res->sortEdgesOnLabelForward(0);
     return SimpleEvaluator::computeStats(res);
 }
