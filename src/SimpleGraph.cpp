@@ -31,7 +31,22 @@ uint32_t SimpleGraph::getNoEdges() const {
 
 uint32_t SimpleGraph::getNoDistinctEdges() const {
     //TODO: move the code from estimator to here
-    return 0;
+
+    uint32_t sum = 0;
+    uint32_t prevTarget = 0;
+    uint32_t prevSource = 0;
+    bool first = true;
+
+    for (auto ed : edges[0]) {
+        if (first || !(prevTarget == ed.second && prevSource == ed.first)) {
+            first = false;
+            sum++;
+            prevTarget = ed.second;
+            prevSource = ed.first;
+
+        }
+    }
+    return sum;
 }
 
 uint32_t SimpleGraph::getNoLabels() const {

@@ -45,7 +45,7 @@ void SimpleEvaluator::prepare() {
 cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
     cardStat stats {};
     //nopaths is the total amount of edges
-    stats.noPaths = g->totalEdges;
+    stats.noPaths = g->getNoEdges();
     //these are used to calculate the distinct vertices
     //1 means that the vertice is used, 0 means it is not used
     std::vector<uint32_t> outs;
@@ -90,7 +90,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
         for(auto e: in->edges[projectLabel]){
             out->addEdge(e.second, e.first, 0);
         }
-        for(auto e: in->reversedEdges[projectLabel]){
+        for(auto e: in->edges[projectLabel]){
             out->addReverseEdge(e.second, e.first, 0, true);
         }
     }
@@ -118,9 +118,8 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
     auto leftEnd = left->edges[traceLabel].end();
     auto rightIt = right->reversedEdges[traceLabel].begin();
     auto rightEnd = right->reversedEdges[traceLabel].end();
+
     while(leftIt != leftEnd && rightIt != rightEnd){
-        // std::cout << "left: " << leftIt->second << ". right: " << rightIt -> first << std::endl;
-        // std::cout << std::endl;
 
         if(leftIt->second < rightIt->first){
             leftIt++;
@@ -132,10 +131,10 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
         else if(rightIt-> first == leftIt->second){
             //it might happen that there are multiple edges with the same endpoints (left) and beginpoints (right). add all of them
             //as long the list is not finished or we hit the next edge
+
             uint32_t node = leftIt->second;
             while(leftIt != leftEnd){
 
-                //// HIER GAAT HET FOUT, LEFTSOURCE met RIGHTTARGET aan graph toevoegen
                 if(leftIt->second != node)
                     break;
 
@@ -143,34 +142,19 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
                 while(tempIt != rightEnd) {
                     if(tempIt->first != node)
                         break;
+
                     //add edge twice, forwards and backwards
-                    out->addEdge(leftIt->first, rightIt->second, traceLabel);
-                    out->addReverseEdge(leftIt->first, rightIt->second, traceLabel, false);
+                    out->addEdge(leftIt->first, tempIt->second, traceLabel);
+                    out->addReverseEdge(leftIt->first, tempIt->second, traceLabel, false);
                     tempIt++;
                 }
-
                 leftIt++;
             }
-            /*
-            //same for right
-            while(rightIt != rightEnd){
-                if(rightIt->first != node)
-                    break;
-                out->addEdge(rightIt->first, rightIt->second, traceLabel);
-                out->addReverseEdge(rightIt->first, rightIt->second, traceLabel, false);
-                rightIt++;
-            } */
-
         }
     }
 
     //unfortunately we need to sort everything again
     out->sortEdgesOnLabel(traceLabel);
-
-    std::cout << out->getNoEdges() << std::endl;
-
-    //remove duplicates?
-
     return out;
 }
 
