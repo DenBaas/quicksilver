@@ -199,7 +199,7 @@ std::vector<uint32_t> SimpleEvaluator::findBestPlan(std::vector<std::pair<uint32
             uint32_t vsy = query[i].second.noIn;
             uint32_t trts = query[i - 1].second.noPaths * query[i].second.noPaths;
 
-            uint32_t paths = (uint32_t) (std::min(trts / vsy, trts / vry)); // * correction
+            uint32_t paths = (uint32_t) (std::min(trts / vsy, trts / vry) * est->correction);
             vry = std::min(vry, paths);
             vsy = std::min(vsy, paths);
 

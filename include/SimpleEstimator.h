@@ -17,6 +17,7 @@ public:
 
     uint32_t* total_tuples_in;
     uint32_t* distinct_tuples_in;
+    double correction;
 
 
     explicit SimpleEstimator(std::shared_ptr<SimpleGraph> &g);

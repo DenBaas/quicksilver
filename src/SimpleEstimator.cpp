@@ -7,7 +7,7 @@
 #include <chrono>
 
 uint32_t noLabels;
-double correction;
+
 
 constexpr int WIDTH = 10;
 
@@ -37,7 +37,6 @@ void SimpleEstimator::prepare() {
     int tracker = 0;
     uint32_t distinct_out = 0;
     uint32_t distinct_in = 0;
-    uint32_t intersect = 0;
 
     for(int i = 0; i < noVertices; i++) {
 
@@ -50,10 +49,6 @@ void SimpleEstimator::prepare() {
         }
         if (!graph->reverse_adj[i].empty()) {
             distinct_in++;
-        }
-
-        if (!graph->adj[i].empty() && !graph->reverse_adj[i].empty()) {
-            intersect++;
         }
 
         for (auto labelTarget : graph->adj[i]) {
@@ -77,7 +72,6 @@ void SimpleEstimator::prepare() {
         }
     }
 
-    std::cout << "intersect: " << intersect << std::endl;
     correction = (double)distinct_out/distinct_in;
 
     delete[] previous_tuples_out;
