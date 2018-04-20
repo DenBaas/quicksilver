@@ -30,21 +30,16 @@ uint32_t SimpleGraph::getNoEdges() const {
 }
 
 uint32_t SimpleGraph::getNoDistinctEdges() const {
-    //TODO: move the code from estimator to here
-
     uint32_t sum = 0;
     uint32_t prevTarget = -1;
     uint32_t prevSource = -1;
-    bool sorted = true;
 
+    // Searches for double paths in all the paths
     for (auto ed : reversedEdges[0]) {
         if (!(prevTarget == ed.second && prevSource == ed.first)) {
             sum++;
             prevTarget = ed.second;
             prevSource = ed.first;
-        }
-        else{
-            sorted = prevTarget <= ed.second && prevSource <= ed.first;
         }
     }
     return sum;
@@ -56,7 +51,6 @@ uint32_t SimpleGraph::getNoLabels() const {
 
 void SimpleGraph::setNoLabels(uint32_t noLabels) {
     L = noLabels;
-    //edges.resize(noLabels);
     edges.resize(noLabels);
     reversedEdges.resize(noLabels);
     for(int i = 0; i < noLabels; i++){

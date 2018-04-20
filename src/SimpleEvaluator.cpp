@@ -219,7 +219,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::project(label, inverse, graph);
     }
     //old code
-    /* if(q->isConcat()) {
+    if(q->isConcat()) {
 
         // evaluate the children
         bool decision = query_order[0];
@@ -239,8 +239,8 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
             // join left with right
             return SimpleEvaluator::join(leftGraph, rightGraph);
         }
-    } */
-
+    }
+/*
     if(q->isConcat()) {
 
         // evaluate the children
@@ -251,6 +251,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
         return SimpleEvaluator::join(leftGraph, rightGraph);
 
     }
+    */
 
     return nullptr;
 }
@@ -258,104 +259,6 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
 /*
  * TODO: parse result to query
  */
-std::pair<std::vector<std::string>, int> SimpleEvaluator::findBestPlan(std::pair<std::vector<std::string>, int> plan){
-    if(plan.second != imax){
-        return plan;
-    }
-    if(plan.first.size() == 1){
-        //calculate cost
-        plan.second = costs[plan.first[0]];
-        return plan;
-    }
-    else{
-        auto subsets = getAllSubsets(plan.first);
-        for(std::vector<std::string> subset: subsets){
-            if(subset.size() > 0) {
-                std::vector<std::string> s = plan.first;
-                for (auto j: subset) {
-                    auto i = std::find(s.begin(), s.end(), j);
-                    if (i != s.end()) {
-                        s.erase(i);
-                    }
-                }
-                if (s.size() != 0){ //this means s == subset
-                    auto p1 = findBestPlan(std::pair<std::vector<std::string>, int>(subset, imax));
-                    auto p2 = findBestPlan(std::pair<std::vector<std::string>, int>(s, imax));
-                    //estimate join cost
-                    int p12 = p1.second * p2.second;
-                    int cost = p1.second + p2.second + std::min(p12/p1.second,p12/p2.second);
-                    if(cost < plan.second){
-                        //TODO: refine this
-                        std::string sid1 = "(" + std::to_string(sid) + ")";
-                        sid++;
-                        std::string sid2 = "(" + std::to_string(sid) + ")";
-                        std::string job1 = sid1 + "--";
-                        std::string job2 = sid2 + "-";
-                        for(std::string x: p1.first){
-                            job1+=(x + "-");
-                        }
-                        for(std::string x: p2.first){
-                            job2+=(x + "-");
-                        }
-                        std::string join = "join between" + sid1 + sid2;
-                        sid++;
-
-
-                        std::pair<std::vector<std::string>,int> result;
-                        result.second = cost;
-                        result.first.push_back(job1);
-                        result.first.push_back(job2);
-                        result.first.push_back(join);
-
-
-                        /*result.first = p1.first;
-                        result.first.insert(std::end(result.first), std::begin(p2.first), std::end(p2.first));
-                        std::string j1 = "---";
-                        std::string j2 = " with ";
-                        for(std::string x: p1.first){
-                            j1+=x;
-                        }
-                        for(std::string x: p2.first){
-                            j2+=x;
-                        }
-                        j2+="---";
-                        result.first.clear();
-                        result.first.push_back(j1.append(j2));*/
-                        return result;
-                    }
-                    return plan;
-                }
-            }
-        }
-    }
-}
-
-std::vector<std::vector<std::string>> SimpleEvaluator::getAllSubsets(std::vector<std::string> plan)
-{
-    std::vector<std::vector<std::string>> subsets;
-    int n = plan.size();
-    for (int i = 0; i < (int) pow(2, n); i++)
-    {
-        std::vector<std::string> sset;
-
-        // consider each element in the set
-        for (int j = 0; j < n; j++)
-        {
-            // Check if jth bit in the i is set. If the bit
-            // is set, we consider jth element from set
-            if ((i & (1 << j)) != 0) {
-                sset.push_back(plan[j]);
-            }
-        }
-
-        // if subset is encountered for the first time
-        // If we use set<string>, we can directly insert
-        if (std::find(subsets.begin(), subsets.end(), sset) == subsets.end()){
-            subsets.push_back(sset);
-        }
-    }
-    return subsets;
-}
 
 void SimpleEvaluator::planQuery(RPQTree* q) {
     if(q->isLeaf()) {
@@ -396,7 +299,7 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
     query_labels.clear();
     return cardStat{1,1,1};
 */
-    /*
+
     uint32_t size_query[query_labels.size() - 1];
     for(int i = 0; i < query_labels.size() - 1; i++) {
         size_query[i] = total_tuples[query_labels[i]] * total_tuples[query_labels[i]];
@@ -408,7 +311,7 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
         }
     }
     query_order.push_back(true);
-*/
+
 
     auto res = evaluate_aux(query);
     return SimpleEvaluator::computeStats(res);
