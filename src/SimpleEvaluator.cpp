@@ -64,54 +64,6 @@ cardStat SimpleEvaluator::computeStats(std::shared_ptr<SimpleGraph> &g) {
         stats.noOut += outs[i];
         stats.noIn += ins[i];
     }
-
-    /*cardStat stats {};
-    //nopaths is the total amount of edges
-    stats.noPaths = g->getNoDistinctEdges();
-    stats.noIn = stats.noOut = 0;
-    uint32_t start = -1;
-    uint32_t end = -1;
-
-    for(auto e: g->edges[0]){
-        if(start != e.first){
-            start = e.first;
-            stats.noOut++;
-        }
-        if(start != e.second){
-            start = e.second;
-            stats.noIn++;
-        }
-    } */
-    //these are used to calculate the distinct vertices
-    //1 means that the vertice is used, 0 means it is not used
-    /*std::vector<uint32_t> outs;
-    std::vector<uint32_t> ins;
-    outs.resize(g->getNoVertices());
-    ins.resize(g->getNoVertices());
-    for(int i = 0; i < g->getNoLabels(); i++){
-        auto it = g->edges[i].begin();
-        while(it != g->edges[i].end()){
-            outs[it->first] = 1;
-            ins[it->second] = 1;
-            it++;
-        }
-    }
-    for(int i = 0; i < ins.size(); ++i){
-        stats.noOut += outs[i];
-        stats.noIn += ins[i];
-    }*/
-    //original code
-    /*
-    for(int source = 0; source < g->getNoVertices(); source++) {
-        if(!g->adj[source].empty()) stats.noOut++;
-    }
-
-    stats.noPaths = g->getNoDistinctEdges();
-
-    for(int target = 0; target < g->getNoVertices(); target++) {
-        if(!g->reverse_adj[target].empty()) stats.noIn++;
-    }
-    */
     return stats;
 }
 
@@ -142,13 +94,14 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
 }
 
 std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> &left, std::shared_ptr<SimpleGraph> &right) {
-
     auto out = std::make_shared<SimpleGraph>(left->getNoVertices());
     out->setNoLabels(std::max(left->getNoLabels(), right->getNoLabels()));
     /*
      * 1. compare each list per label from the left side to each list per label on the right side
      */
     uint32_t traceLabel = 0;
+    left->sortEdgesOnLabelForward(traceLabel);
+    right->sortEdgesOnLabelBackward(traceLabel);
 
     auto leftIt = left->edges[traceLabel].begin();
     auto leftEnd = left->edges[traceLabel].end();
@@ -190,7 +143,6 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::join(std::shared_ptr<SimpleGraph> 
     }
 
     //unfortunately we need to sort everything again
-    out->sortEdgesOnLabel(traceLabel);
     return out;
 }
 
@@ -411,5 +363,7 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
 */
 
     auto res = evaluate_aux(query);
+    res->sortEdgesOnLabelBackward(0);
+    res->sortEdgesOnLabelForward(0);
     return SimpleEvaluator::computeStats(res);
 }
