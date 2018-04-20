@@ -104,7 +104,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::project(uint32_t projectLabel, boo
         for(auto e: in->edges[projectLabel]){
             out->addEdge(e.second, e.first, 0);
         }
-        for(auto e: in->edges[projectLabel]){
+        for(auto e: in->reversedEdges[projectLabel]){
             out->addReverseEdge(e.second, e.first, 0, true);
         }
     }
