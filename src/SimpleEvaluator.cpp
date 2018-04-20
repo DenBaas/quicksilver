@@ -170,6 +170,7 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
 
         return SimpleEvaluator::project(label, inverse, graph);
     }
+
     //old code
     if(q->isConcat()) {
 
@@ -201,9 +202,9 @@ std::shared_ptr<SimpleGraph> SimpleEvaluator::evaluate_aux(RPQTree *q) {
 
         // join left with right
         return SimpleEvaluator::join(leftGraph, rightGraph);
-
     }
-    */
+*/
+
 
     return nullptr;
 }
@@ -218,13 +219,16 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
         std::smatch matches;
 
         uint32_t label;
+        bool inverse;
 
         if(std::regex_search(q->data, matches, dirLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            query_labels.push_back(label);
+            inverse = false;
+            query_labels.push_back(std::pair<uint32_t,bool>(label, inverse));
         } else if(std::regex_search(q->data, matches, invLabel)) {
             label = (uint32_t) std::stoul(matches[1]);
-            query_labels.push_back(label);
+            inverse = true;
+            query_labels.push_back(std::pair<uint32_t,bool>(label, inverse));
         } else {
             std::cerr << "Label parsing failed!" << std::endl;
         }
@@ -237,25 +241,18 @@ void SimpleEvaluator::planQuery(RPQTree* q) {
     }
 }
 
+void SimpleEvaluator::findBestPlan(RPQTree *q) {
+    int i = 0;
+
+}
+
 cardStat SimpleEvaluator::evaluate(RPQTree *query) {
-    //bestPlan.first.clear();
-    //bestPlan.second = imax;
-/*
-    planQuery(query);
-    std::vector<std::string> labelsAsInts{};
-    for(uint32_t i: query_labels){
-        labelsAsInts.push_back(std::to_string((int) i));
-    }
-    std::pair<std::vector<std::string>, int> input(labelsAsInts, imax);
-    auto plan = findBestPlan(input);
     query_labels.clear();
-    return cardStat{1,1,1};
-*/
+    planQuery(query);
 
     uint32_t size_query[query_labels.size() - 1];
     for(int i = 0; i < query_labels.size() - 1; i++) {
-        size_query[i] = total_tuples[query_labels[i]] * total_tuples[query_labels[i]];
-        std::cout << "Size: " << size_query[i] << std::endl;
+        size_query[i] = total_tuples[query_labels[i].first] * total_tuples[query_labels[i].first];
     }
     for(int i = 0; i < query_labels.size() - 2; i++) {
         if(size_query[i] > size_query[i+1]) {
@@ -264,6 +261,8 @@ cardStat SimpleEvaluator::evaluate(RPQTree *query) {
     }
     query_order.push_back(true);
 
+
+    findBestPlan(query);
 
     auto res = evaluate_aux(query);
     res->sortEdgesOnLabelBackward(0);

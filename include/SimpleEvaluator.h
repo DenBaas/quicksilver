@@ -20,7 +20,7 @@ class SimpleEvaluator : public Evaluator {
     std::shared_ptr<SimpleGraph> graph;
     std::shared_ptr<SimpleEstimator> est;
     uint32_t* total_tuples;
-    std::vector<uint32_t> query_labels;
+    std::vector<std::pair<uint32_t, bool>> query_labels;
     std::vector<bool> query_order;
 
 public:
@@ -31,7 +31,7 @@ public:
     void prepare() override ;
     cardStat evaluate(RPQTree *query) override ;
     void planQuery(RPQTree *q);
-    std::pair<std::vector<std::string>, int> findBestPlan(std::pair<std::vector<std::string>, int> plan);
+    void findBestPlan(RPQTree *q);
 
     void attachEstimator(std::shared_ptr<SimpleEstimator> &e);
 
